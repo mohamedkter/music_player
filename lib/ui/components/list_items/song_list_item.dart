@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:on_audio_query/on_audio_query.dart' as oaq;
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -33,6 +33,7 @@ class SongListItem extends StatelessWidget {
     required this.title,
     required this.artist,
     required this.durationMs,
+    this.songId,
     this.album,
     this.coverPath,
     this.trackNumber,
@@ -47,6 +48,8 @@ class SongListItem extends StatelessWidget {
   final String title;
   final String artist;
   final int durationMs;
+  /// Song ID from MediaStore — used to load album art via QueryArtworkWidget.
+  final int? songId;
   final String? album;
   final String? coverPath;
   final int? trackNumber;
@@ -149,10 +152,16 @@ class SongListItem extends StatelessWidget {
   }
 
   Widget _buildArtwork() {
-    if (coverPath != null && coverPath!.isNotEmpty) {
-      return Image.file(
-        File(coverPath!),
-        fit: BoxFit.cover,
+    if (songId != null) {
+      return oaq.QueryArtworkWidget(
+        id: songId!,
+        type: oaq.ArtworkType.AUDIO,
+        artworkWidth: 48,
+        artworkHeight: 48,
+        artworkFit: BoxFit.cover,
+        artworkBorder: BorderRadius.zero,
+        keepOldArtwork: true,
+        nullArtworkWidget: const _ArtworkPlaceholder(),
         errorBuilder: (_, __, ___) => const _ArtworkPlaceholder(),
       );
     }

@@ -15,6 +15,9 @@ final class PlayerState extends Equatable {
     this.speed = 1.0,
     this.isLoading = false,
     this.errorMessage,
+    this.sleepTimerRemaining,
+    this.primaryColor,
+    this.secondaryColor,
   });
 
   final SongModel? currentSong;
@@ -28,9 +31,13 @@ final class PlayerState extends Equatable {
   final double speed;
   final bool isLoading;
   final String? errorMessage;
+  final Duration? sleepTimerRemaining;
+  final Color? primaryColor;
+  final Color? secondaryColor;
 
   bool get hasError => errorMessage != null;
   bool get hasSong => currentSong != null;
+  bool get isSleepTimerActive => sleepTimerRemaining != null;
 
   double get progress =>
       duration.inMilliseconds > 0
@@ -49,6 +56,9 @@ final class PlayerState extends Equatable {
     double? speed,
     bool? isLoading,
     String? errorMessage,
+    Duration? sleepTimerRemaining,
+    Color? primaryColor,
+    Color? secondaryColor,
   }) {
     return PlayerState(
       currentSong: currentSong ?? this.currentSong,
@@ -62,13 +72,47 @@ final class PlayerState extends Equatable {
       speed: speed ?? this.speed,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage,
+      sleepTimerRemaining: sleepTimerRemaining ?? this.sleepTimerRemaining,
+      primaryColor: primaryColor ?? this.primaryColor,
+      secondaryColor: secondaryColor ?? this.secondaryColor,
+    );
+  }
+
+  /// Helper to clear nullable fields specifically
+  PlayerState copyWithClearedSleepTimer() {
+    return PlayerState(
+      currentSong: currentSong,
+      queue: queue,
+      currentIndex: currentIndex,
+      isPlaying: isPlaying,
+      position: position,
+      duration: duration,
+      shuffleEnabled: shuffleEnabled,
+      repeatMode: repeatMode,
+      speed: speed,
+      isLoading: isLoading,
+      errorMessage: errorMessage,
+      sleepTimerRemaining: null,
+      primaryColor: primaryColor,
+      secondaryColor: secondaryColor,
     );
   }
 
   @override
   List<Object?> get props => [
-        currentSong, queue, currentIndex, isPlaying,
-        position, duration, shuffleEnabled, repeatMode,
-        speed, isLoading, errorMessage,
+        currentSong,
+        queue,
+        currentIndex,
+        isPlaying,
+        position,
+        duration,
+        shuffleEnabled,
+        repeatMode,
+        speed,
+        isLoading,
+        errorMessage,
+        sleepTimerRemaining,
+        primaryColor,
+        secondaryColor,
       ];
 }

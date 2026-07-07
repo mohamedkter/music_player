@@ -8,6 +8,7 @@ import '../../../ui/components/feedback/app_error_widget.dart';
 import '../../../ui/components/feedback/app_empty_state.dart';
 import '../../../ui/components/feedback/app_loading.dart';
 import '../../../ui/components/list_items/song_list_item.dart';
+import '../../player/bloc/player_bloc.dart';
 import '../bloc/home_bloc.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -194,7 +195,11 @@ class _HorizontalSongList extends StatelessWidget {
               subtitle: song.artist,
               coverPath: song.coverPath,
               size: 140,
-              onTap: () {},
+              onTap: () {
+                context.read<PlayerBloc>().add(
+                  PlayerSongRequested(song: song, queue: songs.cast()),
+                );
+              },
             );
           },
         ),
@@ -225,7 +230,11 @@ class _HorizontalAlbumList extends StatelessWidget {
               subtitle: song.artist,
               coverPath: song.coverPath,
               size: 130,
-              onTap: () {},
+              onTap: () {
+                context.read<PlayerBloc>().add(
+                  PlayerSongRequested(song: song, queue: songs.cast()),
+                );
+              },
             );
           },
         ),

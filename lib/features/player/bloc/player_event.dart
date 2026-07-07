@@ -53,3 +53,24 @@ final class _PlayerStateUpdated extends PlayerEvent {
   final bool isPlaying;
   final Duration duration;
 }
+
+final class PlayerSleepTimerStarted extends PlayerEvent {
+  PlayerSleepTimerStarted(this.duration);
+  final Duration duration;
+}
+
+final class PlayerSleepTimerCancelled extends PlayerEvent {}
+
+final class _PlayerSleepTimerTicked extends PlayerEvent {
+  _PlayerSleepTimerTicked(this.remaining);
+  final Duration? remaining;
+}
+
+final class PlayerQueueCleared extends PlayerEvent {}
+
+final class _PlayerMediaItemChanged extends PlayerEvent {
+  _PlayerMediaItemChanged(this.item);
+  final MediaItem item;
+}
+
+final class PlayerInitializeRequested extends PlayerEvent {}

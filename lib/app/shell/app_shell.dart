@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:audio_service/audio_service.dart';
 import '../../core/di/service_locator.dart';
+import '../../core/utils/audio_handler.dart';
+import '../../data/datasources/preferences_datasource.dart';
 import '../../core/errors/failures.dart';
 import '../../core/utils/either.dart';
 import '../../data/models/album_model.dart';
@@ -17,10 +20,12 @@ import '../../features/home/view/home_screen.dart';
 import '../../features/player/bloc/player_bloc.dart';
 import '../../features/player/view/now_playing_screen.dart';
 import '../../features/search/bloc/search_bloc.dart';
+import '../../features/search/view/search_screen.dart';
 import '../../features/settings/bloc/settings_bloc.dart';
 import '../../features/settings/view/settings_screen.dart';
 import '../../features/songs/bloc/songs_bloc.dart';
 import '../../features/songs/view/songs_screen.dart';
+import '../../features/player/view/queue_screen.dart';
 import '../../core/bloc/theme/theme_bloc.dart';
 import '../../ui/components/navigation/app_bottom_nav.dart';
 import '../../ui/components/player/mini_player.dart';
@@ -50,9 +55,9 @@ class _AppShellState extends State<AppShell> {
             index: _currentIndex,
             children: const [
               HomeScreen(),
+              SearchScreen(),
+              QueueScreen(),
               SongsScreen(),
-              AlbumsScreen(),
-              _PlaylistsPlaceholder(),
               SettingsScreen(),
             ],
           ),
@@ -117,7 +122,11 @@ class _AppShellState extends State<AppShell> {
 
     return [
       BlocProvider<PlayerBloc>(
-        create: (_) => PlayerBloc(songRepo),
+        create: (_) => PlayerBloc(
+          songRepo,
+          sl<PreferencesDataSource>(),
+          sl<AudioHandler>() as MusicAudioHandler,
+        ),
         lazy: false,
       ),
       BlocProvider<HomeBloc>(
@@ -164,6 +173,9 @@ class _PlayerStateAdapter implements MiniPlayerState {
 
   @override
   String? get coverPath => _state.currentSong?.coverPath;
+
+  @override
+  int? get songId => _state.currentSong?.id;
 
   @override
   bool get isPlaying => _state.isPlaying;

@@ -1,15 +1,15 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:on_audio_query/on_audio_query.dart' as oaq;
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/duration_formatter.dart';
-import '../../../ui/components/buttons/app_icon_button.dart';
 import '../bloc/player_bloc.dart';
 import 'queue_screen.dart';
 import 'widgets/speed_bottom_sheet.dart';
 import 'widgets/sleep_timer_bottom_sheet.dart';
+import '../../../../ui/components/dialogs/add_to_playlist_sheet.dart';
 
 class NowPlayingScreen extends StatelessWidget {
   const NowPlayingScreen({super.key});
@@ -19,8 +19,12 @@ class NowPlayingScreen extends StatelessWidget {
     return BlocBuilder<PlayerBloc, PlayerState>(
       builder: (context, state) {
         if (!state.hasSong) {
-          return const Scaffold(
-            body: Center(child: Text('Nothing playing')),
+          return Scaffold(
+            backgroundColor: AppColors.surface,
+            body: Center(
+              child: Text('Nothing playing',
+                  style: AppTextStyles.headlineSm),
+            ),
           );
         }
         return _NowPlayingView(state: state);
@@ -37,40 +41,80 @@ class _NowPlayingView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      extendBodyBehindAppBar: true,
-      appBar: _buildAppBar(context),
-      body: Stack(
-        fit: StackFit.expand,
+      backgroundColor: AppColors.surface,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Header ─────────────────────────────────────────────────
+              _Header(state: state),
+              // ── Album Art ──────────────────────────────────────────────
+              _AlbumArt(state: state),
+              // ── Song Info ──────────────────────────────────────────────
+              _SongInfo(state: state),
+              // ── Progress Bar ───────────────────────────────────────────
+              _ProgressBar(state: state),
+              // ── Controls ───────────────────────────────────────────────
+              _Controls(state: state),
+              const SizedBox(height: 32),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Header ────────────────────────────────────────────────────────────────────
+
+class _Header extends StatelessWidget {
+  const _Header({required this.state});
+
+  final PlayerState state;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Dynamic background ─────────────────────────────────────────
-          _DynamicBackground(coverPath: state.currentSong?.coverPath),
-          // ── Content ────────────────────────────────────────────────────
-          SafeArea(
-            child: Column(
-              children: [
-                const SizedBox(height: kToolbarHeight + 8),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                    ),
-                    child: Column(
-                      children: [
-                        Expanded(child: _AlbumArt(state: state)),
-                        AppSpacing.vGap(AppSpacing.lg),
-                        _SongInfo(state: state),
-                        AppSpacing.vGap(AppSpacing.md),
-                        _ProgressBar(state: state),
-                        AppSpacing.vGap(AppSpacing.md),
-                        _Controls(state: state),
-                        AppSpacing.vGap(AppSpacing.lg),
-                        _ToolBar(state: state),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+          // Back arrow
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.border, width: 2),
+              ),
+              child: const Icon(
+                Icons.arrow_back,
+                size: 20,
+                color: AppColors.onSurface,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Spacer(),
+          // More options
+          GestureDetector(
+            onTap: () => _showMoreOptions(context),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.border, width: 2),
+              ),
+              child: const Icon(
+                Icons.more_vert,
+                size: 20,
+                color: AppColors.onSurface,
+              ),
             ),
           ),
         ],
@@ -78,95 +122,114 @@ class _NowPlayingView extends StatelessWidget {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return AppBar(
+  void _showMoreOptions(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
       backgroundColor: Colors.transparent,
-      elevation: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.keyboard_arrow_down, size: 32),
-        onPressed: () => Navigator.pop(context),
-        color: Colors.white,
-      ),
-      title: Text(
-        'Now Playing',
-        style: AppTextStyles.labelMd.copyWith(color: Colors.white),
-      ),
-      centerTitle: true,
-      actions: [
-        PopupMenuButton<_MoreOption>(
-          icon: const Icon(Icons.more_vert, color: Colors.white),
+      builder: (_) => Container(
+        decoration: const BoxDecoration(
           color: AppColors.surfaceContainerLowest,
-          shape: const RoundedRectangleBorder(
-            side: BorderSide(color: AppColors.border, width: 2),
+          border: Border(
+            top: BorderSide(color: AppColors.border, width: 2),
           ),
-          onSelected: (opt) => _onMoreOption(context, opt),
-          itemBuilder: (_) => const [
-            PopupMenuItem(value: _MoreOption.speed, child: Text('Playback Speed')),
-            PopupMenuItem(value: _MoreOption.sleep, child: Text('Sleep Timer')),
-            PopupMenuItem(value: _MoreOption.queue, child: Text('Queue')),
-            PopupMenuItem(value: _MoreOption.album, child: Text('Go to Album')),
-            PopupMenuItem(value: _MoreOption.artist, child: Text('Go to Artist')),
-            PopupMenuItem(value: _MoreOption.addToPlaylist, child: Text('Add to Playlist')),
-          ],
         ),
-      ],
-    );
-  }
-
-  void _onMoreOption(BuildContext context, _MoreOption opt) {
-    switch (opt) {
-      case _MoreOption.speed:
-        showModalBottomSheet<void>(
-          context: context,
-          backgroundColor: Colors.transparent,
-          builder: (_) => SpeedBottomSheet(
-            currentSpeed: state.speed,
-            onSelected: (s) =>
-                context.read<PlayerBloc>().add(PlayerSpeedChanged(s)),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _OptionTile(
+                icon: Icons.speed,
+                label: 'PLAYBACK SPEED',
+                onTap: () {
+                  Navigator.pop(context);
+                  showModalBottomSheet<void>(
+                    context: context,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => SpeedBottomSheet(
+                      currentSpeed: state.speed,
+                      onSelected: (s) => context
+                          .read<PlayerBloc>()
+                          .add(PlayerSpeedChanged(s)),
+                    ),
+                  );
+                },
+              ),
+              _OptionTile(
+                icon: Icons.bedtime_outlined,
+                label: 'SLEEP TIMER',
+                onTap: () {
+                  Navigator.pop(context);
+                  showModalBottomSheet<void>(
+                    context: context,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => const SleepTimerBottomSheet(),
+                  );
+                },
+              ),
+              _OptionTile(
+                icon: Icons.queue_music,
+                label: 'QUEUE',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => const QueueScreen(),
+                    ),
+                  );
+                },
+              ),
+              _OptionTile(
+                icon: Icons.playlist_add,
+                label: 'ADD TO PLAYLIST',
+                onTap: () {
+                  Navigator.pop(context);
+                  if (state.currentSong != null) {
+                    AddToPlaylistSheet.show(context, state.currentSong!);
+                  }
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
           ),
-        );
-      case _MoreOption.sleep:
-        showModalBottomSheet<void>(
-          context: context,
-          backgroundColor: Colors.transparent,
-          builder: (_) => const SleepTimerBottomSheet(),
-        );
-      case _MoreOption.queue:
-        Navigator.push(
-          context,
-          MaterialPageRoute<void>(builder: (_) => const QueueScreen()),
-        );
-      case _MoreOption.album:
-      case _MoreOption.artist:
-      case _MoreOption.addToPlaylist:
-        // TODO: implement navigation
-        break;
-    }
+        ),
+      ),
+    );
   }
 }
 
-enum _MoreOption { speed, sleep, queue, album, artist, addToPlaylist }
+class _OptionTile extends StatelessWidget {
+  const _OptionTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
-// ── Dynamic gradient background ───────────────────────────────────────────────
-
-class _DynamicBackground extends StatelessWidget {
-  const _DynamicBackground({this.coverPath});
-
-  final String? coverPath;
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    // Fallback color when no artwork
-    const baseColor = Color(0xFF1A0A3C);
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            baseColor,
-            Colors.black,
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: 14,
+        ),
+        decoration: const BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: AppColors.outlineVariant, width: 1),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: AppColors.onSurface),
+            const SizedBox(width: 12),
+            Text(label, style: AppTextStyles.labelMd.copyWith(
+              color: AppColors.onSurface,
+            )),
           ],
         ),
       ),
@@ -174,86 +237,71 @@ class _DynamicBackground extends StatelessWidget {
   }
 }
 
-// ── Album Art with rotation animation ─────────────────────────────────────────
+// ── Album Art ─────────────────────────────────────────────────────────────────
 
-class _AlbumArt extends StatefulWidget {
+class _AlbumArt extends StatelessWidget {
   const _AlbumArt({required this.state});
 
   final PlayerState state;
 
   @override
-  State<_AlbumArt> createState() => _AlbumArtState();
+  Widget build(BuildContext context) {
+    final songId = state.currentSong?.id;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md, AppSpacing.md, AppSpacing.md, 0,
+      ),
+      child: Container(
+        width: double.infinity,
+        height: MediaQuery.of(context).size.width - (AppSpacing.md * 2),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.border, width: 2),
+          color: AppColors.surfaceContainerHigh,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: songId != null
+            ? oaq.QueryArtworkWidget(
+                id: songId,
+                type: oaq.ArtworkType.AUDIO,
+                artworkWidth: double.infinity,
+                artworkHeight: double.infinity,
+                artworkFit: BoxFit.cover,
+                artworkBorder: BorderRadius.zero,
+                keepOldArtwork: true,
+                nullArtworkWidget: _ArtworkPlaceholder(
+                  size: MediaQuery.of(context).size.width - (AppSpacing.md * 2),
+                ),
+                errorBuilder: (_, __, ___) => _ArtworkPlaceholder(
+                  size: MediaQuery.of(context).size.width - (AppSpacing.md * 2),
+                ),
+              )
+            : _ArtworkPlaceholder(
+                size: MediaQuery.of(context).size.width - (AppSpacing.md * 2),
+              ),
+      ),
+    );
+  }
 }
 
-class _AlbumArtState extends State<_AlbumArt>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _rotCtrl;
+class _ArtworkPlaceholder extends StatelessWidget {
+  const _ArtworkPlaceholder({required this.size});
 
-  @override
-  void initState() {
-    super.initState();
-    _rotCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 20),
-    );
-    if (widget.state.isPlaying) _rotCtrl.repeat();
-  }
-
-  @override
-  void didUpdateWidget(_AlbumArt old) {
-    super.didUpdateWidget(old);
-    if (widget.state.isPlaying && !_rotCtrl.isAnimating) {
-      _rotCtrl.repeat();
-    } else if (!widget.state.isPlaying && _rotCtrl.isAnimating) {
-      _rotCtrl.stop();
-    }
-  }
-
-  @override
-  void dispose() {
-    _rotCtrl.dispose();
-    super.dispose();
-  }
+  final double size;
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: RotationTransition(
-        turns: _rotCtrl,
-        child: _buildArt(),
-      ),
-    );
-  }
-
-  Widget _buildArt() {
-    final cover = widget.state.currentSong?.coverPath;
-    final size = MediaQuery.of(context).size.width * 0.72;
-
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white24, width: 3),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black54,
-            blurRadius: 40,
-            offset: Offset(0, 20),
-          ),
-        ],
+      color: AppColors.surfaceContainerHigh,
+      child: Center(
+        child: Icon(
+          Icons.music_note,
+          size: size * 0.3,
+          color: AppColors.outline,
+        ),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: cover != null && cover.isNotEmpty
-          ? Image.file(File(cover), fit: BoxFit.cover)
-          : Container(
-              color: AppColors.surfaceContainerHigh,
-              child: Icon(
-                Icons.music_note,
-                size: size * 0.4,
-                color: AppColors.primary,
-              ),
-            ),
     );
   }
 }
@@ -267,46 +315,143 @@ class _SongInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                state.currentSong?.title ?? '—',
-                style: AppTextStyles.headlineSm.copyWith(color: Colors.white),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              AppSpacing.vGap(AppSpacing.xs),
-              Text(
-                '${state.currentSong?.artist ?? ''}'
-                ' · ${state.currentSong?.album ?? ''}',
-                style: AppTextStyles.bodyMd.copyWith(
-                  color: Colors.white60,
+    final song = state.currentSong;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md, AppSpacing.md, AppSpacing.md, 0,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // NOW SPINNING label
+                Text(
+                  'NOW SPINNING',
+                  style: AppTextStyles.labelSm.copyWith(
+                    color: AppColors.primary,
+                    letterSpacing: 2.0,
+                  ),
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                const SizedBox(height: 6),
+                // Song title — large brutalist
+                _MarqueeText(
+                  text: (song?.title ?? '—').toUpperCase(),
+                  style: AppTextStyles.headlineLg.copyWith(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    height: 1.1,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                // Artist name
+                Text(
+                  song?.artist ?? '',
+                  style: AppTextStyles.bodyMd.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 10),
+                // Metadata chips
+                _MetadataChips(state: state),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Brutalist Favorite Button
+          GestureDetector(
+            onTap: () => context.read<PlayerBloc>().add(PlayerFavoriteToggled()),
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.border, width: 2),
+                color: (song?.isFavorite ?? false)
+                    ? AppColors.primary
+                    : AppColors.surfaceContainerLowest,
+                boxShadow: const [
+                  BoxShadow(
+                    color: AppColors.shadowNeutral,
+                    offset: Offset(3, 3),
+                  ),
+                ],
               ),
-            ],
+              child: Icon(
+                (song?.isFavorite ?? false) ? Icons.favorite : Icons.favorite_border,
+                color: (song?.isFavorite ?? false) ? Colors.white : AppColors.onSurface,
+                size: 24,
+              ),
+            ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetadataChips extends StatelessWidget {
+  const _MetadataChips({required this.state});
+
+  final PlayerState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final song = state.currentSong;
+    final chips = <String>[];
+
+    if (song?.album != null && song!.album.isNotEmpty) {
+      chips.add(song.album);
+    }
+    if (song?.year != null) {
+      chips.add('${song!.year}');
+    }
+    final ext = song?.fileExtension.toUpperCase() ?? '';
+    if (ext.isNotEmpty) {
+      chips.add(ext);
+    }
+    if (state.speed != 1.0) {
+      chips.add('${state.speed}×');
+    }
+    if (state.isSleepTimerActive && state.sleepTimerRemaining != null) {
+      chips.add('SLEEP: ${DurationFormatter.format(state.sleepTimerRemaining!)}');
+    }
+
+    if (chips.isEmpty) return const SizedBox.shrink();
+
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: chips.map((c) => _Chip(label: c)).toList(),
+    );
+  }
+}
+
+class _Chip extends StatelessWidget {
+  const _Chip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.border, width: 1.5),
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: AppTextStyles.labelSm.copyWith(
+          fontSize: 10,
+          color: AppColors.onSurface,
+          letterSpacing: 0.8,
         ),
-        AppSpacing.hGap(AppSpacing.md),
-        GestureDetector(
-          onTap: () =>
-              context.read<PlayerBloc>().add(PlayerFavoriteToggled()),
-          child: Icon(
-            (state.currentSong?.isFavorite ?? false)
-                ? Icons.favorite
-                : Icons.favorite_border,
-            color: (state.currentSong?.isFavorite ?? false)
-                ? AppColors.error
-                : Colors.white60,
-            size: 28,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -324,46 +469,84 @@ class _ProgressBar extends StatelessWidget {
     final pos = state.position.inMilliseconds
         .toDouble()
         .clamp(0.0, total > 0 ? total : 1.0);
+    final progress = total > 0 ? pos / total : 0.0;
 
-    return Column(
-      children: [
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            activeTrackColor: Colors.white,
-            thumbColor: Colors.white,
-            inactiveTrackColor: Colors.white24,
-            overlayColor: Colors.white24,
-            trackHeight: 3,
-            thumbShape:
-                const RoundSliderThumbShape(enabledThumbRadius: 6),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md, AppSpacing.md, AppSpacing.md, 0,
+      ),
+      child: Column(
+        children: [
+          // Custom brutalist progress bar
+          Container(
+            height: 6,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: AppColors.outlineVariant,
+              border: Border.all(color: AppColors.border, width: 1),
+            ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return Stack(
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: constraints.maxWidth * progress,
+                      color: AppColors.primary,
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
-          child: Slider(
-            value: total > 0 ? pos / total : 0,
-            onChanged: (v) {
-              final seek = Duration(
-                milliseconds: (v * total).round(),
-              );
-              context.read<PlayerBloc>().add(PlayerSeekRequested(seek));
-            },
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                DurationFormatter.format(state.position),
-                style: AppTextStyles.labelSm.copyWith(color: Colors.white60),
+          // Seekbar (invisible, overlapping)
+          SizedBox(
+            height: 28,
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                activeTrackColor: Colors.transparent,
+                inactiveTrackColor: Colors.transparent,
+                thumbColor: AppColors.primary,
+                overlayColor: AppColors.primary.withValues(alpha: 0.15),
+                trackHeight: 0,
+                thumbShape:
+                    const RoundSliderThumbShape(enabledThumbRadius: 0),
               ),
-              Text(
-                DurationFormatter.format(state.duration),
-                style: AppTextStyles.labelSm.copyWith(color: Colors.white60),
+              child: Slider(
+                value: total > 0 ? pos / total : 0,
+                onChanged: (v) {
+                  final seek = Duration(
+                    milliseconds: (v * total).round(),
+                  );
+                  context.read<PlayerBloc>().add(PlayerSeekRequested(seek));
+                },
               ),
-            ],
+            ),
           ),
-        ),
-      ],
+          // Time labels
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  DurationFormatter.format(state.position),
+                  style: AppTextStyles.labelSm.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  DurationFormatter.format(state.duration),
+                  style: AppTextStyles.labelSm.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -379,147 +562,199 @@ class _Controls extends StatelessWidget {
   Widget build(BuildContext context) {
     final bloc = context.read<PlayerBloc>();
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        // Shuffle
-        AppIconButton(
-          icon: Icons.shuffle,
-          isActive: state.shuffleEnabled,
-          activeColor: AppColors.inversePrimary,
-          onPressed: () => bloc.add(PlayerShuffleToggled()),
-        ),
-        // Previous
-        IconButton(
-          icon: const Icon(Icons.skip_previous, size: 36, color: Colors.white),
-          onPressed: () => bloc.add(PlayerSkipToPrevious()),
-        ),
-        // Play / Pause — large button
-        GestureDetector(
-          onTap: () => bloc.add(PlayerTogglePlayPause()),
-          child: Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.6),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: state.isLoading
-                ? const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: CircularProgressIndicator(
-                      color: AppColors.primary,
-                      strokeWidth: 3,
-                    ),
-                  )
-                : Icon(
-                    state.isPlaying ? Icons.pause : Icons.play_arrow,
-                    size: 40,
-                    color: AppColors.primary,
-                  ),
-          ),
-        ),
-        // Next
-        IconButton(
-          icon: const Icon(Icons.skip_next, size: 36, color: Colors.white),
-          onPressed: () => bloc.add(PlayerSkipToNext()),
-        ),
-        // Repeat
-        AppIconButton(
-          icon: switch (state.repeatMode) {
-            RepeatMode.off => Icons.repeat,
-            RepeatMode.all => Icons.repeat,
-            RepeatMode.one => Icons.repeat_one,
-          },
-          isActive: state.repeatMode != RepeatMode.off,
-          activeColor: AppColors.inversePrimary,
-          onPressed: () => bloc.add(PlayerRepeatToggled()),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Tool Bar ──────────────────────────────────────────────────────────────────
-
-class _ToolBar extends StatelessWidget {
-  const _ToolBar({required this.state});
-
-  final PlayerState state;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _ToolButton(
-          icon: Icons.queue_music,
-          label: 'Queue',
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute<void>(builder: (_) => const QueueScreen()),
-          ),
-        ),
-        _ToolButton(
-          icon: Icons.lyrics_outlined,
-          label: 'Lyrics',
-          onTap: () {}, // TODO
-        ),
-        _ToolButton(
-          icon: Icons.speed,
-          label: '${state.speed}x',
-          onTap: () => showModalBottomSheet<void>(
-            context: context,
-            backgroundColor: Colors.transparent,
-            builder: (_) => SpeedBottomSheet(
-              currentSpeed: state.speed,
-              onSelected: (s) =>
-                  context.read<PlayerBloc>().add(PlayerSpeedChanged(s)),
-            ),
-          ),
-        ),
-        _ToolButton(
-          icon: Icons.share_outlined,
-          label: 'Share',
-          onTap: () {},
-        ),
-      ],
-    );
-  }
-}
-
-class _ToolButton extends StatelessWidget {
-  const _ToolButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md, AppSpacing.md, AppSpacing.md, 0,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(icon, color: Colors.white60, size: 22),
-          AppSpacing.vGap(AppSpacing.xs),
-          Text(
-            label,
-            style: AppTextStyles.labelSm.copyWith(color: Colors.white60),
+          // Shuffle on the far left
+          _BrutalistButton(
+            icon: Icons.shuffle,
+            isActive: state.shuffleEnabled,
+            onTap: () => bloc.add(PlayerShuffleToggled()),
+          ),
+          // Previous
+          _BrutalistButton(
+            icon: Icons.skip_previous,
+            onTap: () => bloc.add(PlayerSkipToPrevious()),
+          ),
+          // Play / Pause — large brutalist square
+          GestureDetector(
+            onTap: () => bloc.add(PlayerTogglePlayPause()),
+            child: Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                border: Border.all(color: AppColors.border, width: 2),
+                boxShadow: const [
+                  BoxShadow(
+                    color: AppColors.shadowNeutral,
+                    offset: Offset(4, 4),
+                  ),
+                ],
+              ),
+              child: state.isLoading
+                  ? const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2.5,
+                      ),
+                    )
+                  : Icon(
+                      state.isPlaying ? Icons.pause : Icons.play_arrow,
+                      size: 36,
+                      color: Colors.white,
+                    ),
+            ),
+          ),
+          // Next
+          _BrutalistButton(
+            icon: Icons.skip_next,
+            onTap: () => bloc.add(PlayerSkipToNext()),
+          ),
+          // Repeat on the far right
+          _BrutalistButton(
+            icon: switch (state.repeatMode) {
+              RepeatMode.off => Icons.repeat,
+              RepeatMode.all => Icons.repeat,
+              RepeatMode.one => Icons.repeat_one,
+            },
+            isActive: state.repeatMode != RepeatMode.off,
+            onTap: () => bloc.add(PlayerRepeatToggled()),
           ),
         ],
       ),
     );
   }
 }
+
+class _BrutalistButton extends StatelessWidget {
+  const _BrutalistButton({
+    required this.icon,
+    required this.onTap,
+    this.isActive = false,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool isActive;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.border, width: 2),
+          color: isActive ? AppColors.primary : AppColors.surfaceContainerLowest,
+          boxShadow: const [
+            BoxShadow(
+              color: AppColors.shadowNeutral,
+              offset: Offset(3, 3),
+            ),
+          ],
+        ),
+        child: Icon(
+          icon,
+          size: 24,
+          color: isActive ? Colors.white : AppColors.onSurface,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Marquee Text ──────────────────────────────────────────────────────────────
+
+class _MarqueeText extends StatefulWidget {
+  const _MarqueeText({
+    required this.text,
+    required this.style,
+  });
+
+  final String text;
+  final TextStyle style;
+
+  @override
+  State<_MarqueeText> createState() => _MarqueeTextState();
+}
+
+class _MarqueeTextState extends State<_MarqueeText> {
+  late final ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startScrolling());
+  }
+
+  void _startScrolling() async {
+    if (!mounted || !_scrollController.hasClients) return;
+    
+    final maxScrollExtent = _scrollController.position.maxScrollExtent;
+    
+    if (maxScrollExtent > 0) {
+      while (mounted && _scrollController.hasClients) {
+        await Future<void>.delayed(const Duration(seconds: 1));
+        if (!mounted || !_scrollController.hasClients) break;
+        
+        await _scrollController.animateTo(
+          maxScrollExtent,
+          duration: Duration(milliseconds: (maxScrollExtent * 30).toInt() + 1500),
+          curve: Curves.linear,
+        );
+        
+        await Future<void>.delayed(const Duration(seconds: 1));
+        if (!mounted || !_scrollController.hasClients) break;
+        
+        await _scrollController.animateTo(
+          0.0,
+          duration: const Duration(milliseconds: 1500),
+          curve: Curves.easeOut,
+        );
+      }
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _MarqueeText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(0.0);
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) => _startScrolling());
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      controller: _scrollController,
+      scrollDirection: Axis.horizontal,
+      physics: const NeverScrollableScrollPhysics(),
+      child: Text(
+        widget.text,
+        style: widget.style,
+        maxLines: 1,
+      ),
+    );
+  }
+}
+
+
+
+

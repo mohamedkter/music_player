@@ -1,13 +1,17 @@
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:audio_service/audio_service.dart';
 
+import '../utils/audio_handler.dart';
 import '../../data/datasources/local_album_datasource.dart';
 import '../../data/datasources/local_song_datasource.dart';
 import '../../data/datasources/preferences_datasource.dart';
 import '../../data/repositories/impl/settings_repository_impl.dart';
 import '../../data/repositories/impl/song_repository_impl.dart';
+import '../../data/repositories/impl/playlist_repository_impl.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../data/repositories/song_repository.dart';
+import '../../data/repositories/playlist_repository.dart';
 import '../bloc/theme/theme_bloc.dart';
 import '../utils/logger.dart';
 
@@ -22,6 +26,9 @@ Future<void> configureDependencies() async {
   // ── External ──────────────────────────────────────────────────────────────
   final prefs = await SharedPreferences.getInstance();
   sl.registerSingleton<SharedPreferences>(prefs);
+
+  final audioHandler = await initAudioService();
+  sl.registerSingleton<AudioHandler>(audioHandler);
 
   // ── Data Sources ──────────────────────────────────────────────────────────
   sl.registerLazySingleton<PreferencesDataSource>(
@@ -43,6 +50,9 @@ Future<void> configureDependencies() async {
   );
   sl.registerLazySingleton<SettingsRepository>(
     () => SettingsRepositoryImpl(sl<PreferencesDataSource>()),
+  );
+  sl.registerLazySingleton<PlaylistRepository>(
+    () => PlaylistRepositoryImpl(sl<SharedPreferences>(), sl<SongRepository>()),
   );
 
   // ── Core BLoCs (singletons — survive navigation) ──────────────────────────

@@ -7,6 +7,7 @@ import '../../../ui/components/feedback/app_empty_state.dart';
 import '../../../ui/components/feedback/app_loading.dart';
 import '../../../ui/components/inputs/app_search_bar.dart';
 import '../../../ui/components/list_items/song_list_item.dart';
+import '../../player/bloc/player_bloc.dart';
 import '../bloc/search_bloc.dart';
 
 class SearchScreen extends StatelessWidget {
@@ -89,12 +90,17 @@ class _ResultsList extends StatelessWidget {
           ),
           ...state.songs.map(
             (s) => SongListItem(
+              songId: s.id,
               title: s.title,
               artist: s.artist,
               durationMs: s.duration,
               coverPath: s.coverPath,
               isFavorite: s.isFavorite,
-              onTap: () {},
+              onTap: () {
+                context.read<PlayerBloc>().add(
+                  PlayerSongRequested(song: s, queue: state.songs.cast()),
+                );
+              },
             ),
           ),
         ],

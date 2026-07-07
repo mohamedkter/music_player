@@ -8,6 +8,9 @@ import '../../../ui/components/feedback/app_error_widget.dart';
 import '../../../ui/components/feedback/app_loading.dart';
 import '../../../ui/components/inputs/app_search_bar.dart';
 import '../../../ui/components/list_items/song_list_item.dart';
+import '../../../features/player/bloc/player_bloc.dart';
+import '../../../data/models/song_model.dart';
+import '../../../ui/components/dialogs/add_to_playlist_sheet.dart';
 import '../bloc/songs_bloc.dart';
 import 'widgets/sort_bottom_sheet.dart';
 
@@ -180,6 +183,7 @@ class _SongsList extends StatelessWidget {
           itemBuilder: (context, index) {
             final song = songs[index];
             return SongListItem(
+              songId: song.id,
               title: song.title,
               artist: song.artist,
               album: song.album,
@@ -187,7 +191,9 @@ class _SongsList extends StatelessWidget {
               coverPath: song.coverPath,
               isFavorite: song.isFavorite,
               onTap: () {
-                // TODO: connect to PlayerBloc.add(PlaySong(song, queue: songs))
+                context.read<PlayerBloc>().add(
+                  PlayerSongRequested(song: song, queue: songs.cast()),
+                );
               },
               onFavoriteTap: () => context
                   .read<SongsBloc>()
@@ -214,7 +220,7 @@ class _SongsList extends StatelessWidget {
 class _SongOptionsSheet extends StatelessWidget {
   const _SongOptionsSheet({required this.song});
 
-  final dynamic song;
+  final SongModel song;
 
   @override
   Widget build(BuildContext context) {
@@ -231,9 +237,21 @@ class _SongOptionsSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _OptionTile(icon: Icons.play_arrow, label: 'Play', onTap: () {}),
+          _OptionTile(icon: Icons.play_arrow, label: 'Play', onTap: () {
+            Navigator.pop(context);
+            context.read<PlayerBloc>().add(
+              PlayerSongRequested(song: song, queue: [song]),
+            );
+          }),
           _OptionTile(icon: Icons.skip_next, label: 'Play Next', onTap: () {}),
-          _OptionTile(icon: Icons.playlist_add, label: 'Add to Playlist', onTap: () {}),
+          _OptionTile(
+            icon: Icons.playlist_add,
+            label: 'Add to Playlist',
+            onTap: () {
+              Navigator.pop(context);
+              AddToPlaylistSheet.show(context, song);
+            },
+          ),
           _OptionTile(
             icon: song.isFavorite ? Icons.favorite : Icons.favorite_border,
             label: song.isFavorite ? 'Remove from Favorites' : 'Add to Favorites',

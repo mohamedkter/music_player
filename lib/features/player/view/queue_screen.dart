@@ -61,7 +61,7 @@ class QueueScreen extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              // TODO: add ClearQueueEvent to PlayerBloc
+              context.read<PlayerBloc>().add(PlayerQueueCleared());
             },
             child: Text('Clear',
                 style: TextStyle(color: AppColors.error)),
@@ -108,6 +108,7 @@ class _QueueList extends StatelessWidget {
               .add(PlayerSongRemovedFromQueue(i)),
           child: SongListItem(
             key: ValueKey('item_${song.id}_$i'),
+            songId: song.id,
             title: song.title,
             artist: song.artist,
             durationMs: song.duration,

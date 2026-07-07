@@ -15,10 +15,10 @@ class AppNavItem {
   final String label;
 }
 
-/// Studio-styled bottom navigation bar.
+/// Brutalist bottom navigation bar.
 ///
-/// Sharp edges, 2px top border, monospaced labels.
-/// Selected item uses primary color; unselected uses onSurfaceVariant.
+/// Sharp edges, 2px top border, monospaced uppercase labels.
+/// Selected item uses gold/yellow highlight background; unselected uses neutral.
 ///
 /// Usage:
 /// ```dart
@@ -42,19 +42,17 @@ class AppBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final surface = Theme.of(context).colorScheme.surfaceContainerLowest;
-
     return Container(
-      decoration: BoxDecoration(
-        color: surface,
-        border: const Border(
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        border: Border(
           top: BorderSide(color: AppColors.border, width: 2),
         ),
       ),
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 60,
+          height: 64,
           child: Row(
             children: List.generate(items.length, (i) {
               final isSelected = i == currentIndex;
@@ -87,26 +85,40 @@ class _NavTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        isSelected ? AppColors.primary : AppColors.onSurfaceVariant;
-
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      overlayColor: WidgetStateProperty.all(AppColors.hoverFill),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            isSelected ? item.activeIcon : item.icon,
-            size: 22,
-            color: color,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.gold : Colors.transparent,
+          border: Border(
+            left: const BorderSide(color: AppColors.border, width: 1),
           ),
-          const SizedBox(height: 2),
-          Text(
-            item.label,
-            style: AppTextStyles.labelSm.copyWith(color: color),
-          ),
-        ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isSelected ? item.activeIcon : item.icon,
+              size: 22,
+              color: isSelected
+                  ? AppColors.onSurface
+                  : AppColors.onSurfaceVariant,
+            ),
+            const SizedBox(height: 3),
+            Text(
+              item.label.toUpperCase(),
+              style: AppTextStyles.labelSm.copyWith(
+                fontSize: 9,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected
+                    ? AppColors.onSurface
+                    : AppColors.onSurfaceVariant,
+                letterSpacing: 1.0,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -116,24 +128,24 @@ class _NavTab extends StatelessWidget {
 abstract final class AppNavItems {
   static const List<AppNavItem> all = [
     AppNavItem(
-      icon: Icons.home_outlined,
-      activeIcon: Icons.home,
-      label: 'Home',
+      icon: Icons.explore_outlined,
+      activeIcon: Icons.explore,
+      label: 'Discover',
     ),
     AppNavItem(
-      icon: Icons.music_note_outlined,
-      activeIcon: Icons.music_note,
-      label: 'Songs',
-    ),
-    AppNavItem(
-      icon: Icons.album_outlined,
-      activeIcon: Icons.album,
-      label: 'Albums',
+      icon: Icons.search_outlined,
+      activeIcon: Icons.search,
+      label: 'Search',
     ),
     AppNavItem(
       icon: Icons.queue_music_outlined,
       activeIcon: Icons.queue_music,
-      label: 'Playlists',
+      label: 'Queue',
+    ),
+    AppNavItem(
+      icon: Icons.library_music_outlined,
+      activeIcon: Icons.library_music,
+      label: 'Library',
     ),
     AppNavItem(
       icon: Icons.settings_outlined,

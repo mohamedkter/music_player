@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:on_audio_query/on_audio_query.dart' as oaq;
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -11,6 +11,7 @@ abstract interface class MiniPlayerState {
   String get songTitle;
   String get artistName;
   String? get coverPath;
+  int? get songId;
   bool get isPlaying;
   Duration get position;
   Duration get duration;
@@ -24,26 +25,15 @@ abstract interface class MiniPlayerEventSink {
 
 /// Persistent mini player bar shown above the Bottom Navigation.
 ///
+/// Brutalist design: 2px borders, sharp edges, progress bar at bottom.
+///
 /// Displays:
-/// - Album art (48×48)
-/// - Song title + artist (with marquee on overflow)
+/// - Album art (44×44) via QueryArtworkWidget
+/// - Song title + artist
 /// - Play/pause & skip-next controls
 /// - Thin progress bar at the bottom
 ///
 /// Tapping the bar navigates to Now Playing.
-///
-/// This widget is generic over the BLoC type to remain reusable
-/// without tight coupling to a specific implementation.
-///
-/// Usage in shell scaffold:
-/// ```dart
-/// MiniPlayer<PlayerBloc, PlayerBlocState>(
-///   stateBuilder: (s) => s,           // adapt state → MiniPlayerState
-///   onPlayPause: () => context.read<PlayerBloc>().add(TogglePlayPause()),
-///   onSkipNext: () => context.read<PlayerBloc>().add(SkipToNext()),
-///   onTap: () => Navigator.pushNamed(context, '/now-playing'),
-/// )
-/// ```
 class MiniPlayer extends StatelessWidget {
   const MiniPlayer({
     super.key,
@@ -68,8 +58,8 @@ class MiniPlayer extends StatelessWidget {
       onTap: onTap,
       child: Container(
         height: 64,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerLowest,
+        decoration: const BoxDecoration(
+          color: AppColors.surfaceContainerLowest,
           border: Border(
             top: BorderSide(color: AppColors.border, width: 2),
           ),
@@ -84,7 +74,7 @@ class MiniPlayer extends StatelessWidget {
                 child: Row(
                   children: [
                     // ── Artwork ───────────────────────────────────────────
-                    _MiniArtwork(coverPath: state.coverPath),
+                    _MiniArtwork(songId: state.songId),
                     AppSpacing.hGap(AppSpacing.sm),
 
                     // ── Title / Artist ────────────────────────────────────
@@ -121,21 +111,38 @@ class MiniPlayer extends StatelessWidget {
                     // ── Controls ──────────────────────────────────────────
                     GestureDetector(
                       onTap: onPlayPause,
-                      child: Icon(
-                        state.isPlaying
-                            ? Icons.pause
-                            : Icons.play_arrow,
-                        size: 28,
-                        color: AppColors.primary,
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          border: Border.all(
+                            color: AppColors.border, width: 1.5),
+                        ),
+                        child: Icon(
+                          state.isPlaying
+                              ? Icons.pause
+                              : Icons.play_arrow,
+                          size: 20,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                     AppSpacing.hGap(AppSpacing.xs),
                     GestureDetector(
                       onTap: onSkipNext,
-                      child: const Icon(
-                        Icons.skip_next,
-                        size: 28,
-                        color: AppColors.onSurfaceVariant,
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: AppColors.border, width: 1.5),
+                        ),
+                        child: const Icon(
+                          Icons.skip_next,
+                          size: 20,
+                          color: AppColors.onSurface,
+                        ),
                       ),
                     ),
                   ],
@@ -144,11 +151,15 @@ class MiniPlayer extends StatelessWidget {
             ),
 
             // ── Progress bar ──────────────────────────────────────────────
-            LinearProgressIndicator(
-              value: progress.clamp(0.0, 1.0),
-              backgroundColor: AppColors.outlineVariant,
-              color: AppColors.primary,
-              minHeight: 2,
+            Container(
+              height: 3,
+              width: double.infinity,
+              color: AppColors.outlineVariant,
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: progress.clamp(0.0, 1.0),
+                child: Container(color: AppColors.primary),
+              ),
             ),
           ],
         ),
@@ -158,28 +169,43 @@ class MiniPlayer extends StatelessWidget {
 }
 
 class _MiniArtwork extends StatelessWidget {
-  const _MiniArtwork({this.coverPath});
+  const _MiniArtwork({this.songId});
 
-  final String? coverPath;
+  final int? songId;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 40,
-      height: 40,
+      width: 44,
+      height: 44,
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.outlineVariant, width: 1),
+        border: Border.all(color: AppColors.border, width: 1.5),
       ),
-      child: coverPath != null && coverPath!.isNotEmpty
-          ? Image.file(File(coverPath!), fit: BoxFit.cover)
-          : Container(
-              color: AppColors.surfaceContainerHigh,
-              child: const Icon(
-                Icons.music_note,
-                size: 20,
-                color: AppColors.outline,
-              ),
-            ),
+      clipBehavior: Clip.antiAlias,
+      child: songId != null
+          ? oaq.QueryArtworkWidget(
+              id: songId!,
+              type: oaq.ArtworkType.AUDIO,
+              artworkWidth: 44,
+              artworkHeight: 44,
+              artworkFit: BoxFit.cover,
+              artworkBorder: BorderRadius.zero,
+              keepOldArtwork: true,
+              nullArtworkWidget: _placeholder(),
+              errorBuilder: (_, __, ___) => _placeholder(),
+            )
+          : _placeholder(),
+    );
+  }
+
+  Widget _placeholder() {
+    return Container(
+      color: AppColors.surfaceContainerHigh,
+      child: const Icon(
+        Icons.music_note,
+        size: 20,
+        color: AppColors.outline,
+      ),
     );
   }
 }
