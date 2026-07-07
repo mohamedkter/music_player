@@ -133,11 +133,6 @@ abstract final class AppNavItems {
       label: 'Discover',
     ),
     AppNavItem(
-      icon: Icons.search_outlined,
-      activeIcon: Icons.search,
-      label: 'Search',
-    ),
-    AppNavItem(
       icon: Icons.queue_music_outlined,
       activeIcon: Icons.queue_music,
       label: 'Queue',

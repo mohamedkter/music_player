@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart' as oaq;
+import 'package:lottie/lottie.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -132,7 +133,11 @@ class SongListItem extends StatelessWidget {
         width: 40,
         child: Center(
           child: isPlaying
-              ? const _PlayingIndicator()
+              ? Lottie.asset(
+                  'assets/animations/Music spectrum.json',
+                  width: 24,
+                  height: 24,
+                )
               : Text(
                   trackNumber.toString(),
                   style: AppTextStyles.labelMd,
@@ -147,7 +152,24 @@ class SongListItem extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border.all(color: AppColors.outlineVariant, width: 1),
       ),
-      child: _buildArtwork(),
+      child: isPlaying
+          ? Stack(
+              fit: StackFit.expand,
+              children: [
+                _buildArtwork(),
+                Container(
+                  color: Colors.black.withValues(alpha: 0.4),
+                ),
+                Center(
+                  child: Lottie.asset(
+                    'assets/animations/Music spectrum.json',
+                    width: 32,
+                    height: 32,
+                  ),
+                ),
+              ],
+            )
+          : _buildArtwork(),
     );
   }
 

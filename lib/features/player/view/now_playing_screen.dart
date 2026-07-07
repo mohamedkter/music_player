@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:on_audio_query/on_audio_query.dart' as oaq;
+import 'package:lottie/lottie.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -247,6 +249,7 @@ class _AlbumArt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final songId = state.currentSong?.id;
+    final size = MediaQuery.of(context).size.width - (AppSpacing.md * 2);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -254,33 +257,214 @@ class _AlbumArt extends StatelessWidget {
       ),
       child: Container(
         width: double.infinity,
-        height: MediaQuery.of(context).size.width - (AppSpacing.md * 2),
+        height: size,
         decoration: BoxDecoration(
           border: Border.all(color: AppColors.border, width: 2),
           color: AppColors.surfaceContainerHigh,
         ),
         clipBehavior: Clip.antiAlias,
-        child: songId != null
-            ? oaq.QueryArtworkWidget(
-                id: songId,
-                type: oaq.ArtworkType.AUDIO,
-                artworkWidth: double.infinity,
-                artworkHeight: double.infinity,
-                artworkFit: BoxFit.cover,
-                artworkBorder: BorderRadius.zero,
-                keepOldArtwork: true,
-                nullArtworkWidget: _ArtworkPlaceholder(
-                  size: MediaQuery.of(context).size.width - (AppSpacing.md * 2),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Album artwork
+            songId != null
+                ? oaq.QueryArtworkWidget(
+                    id: songId,
+                    type: oaq.ArtworkType.AUDIO,
+                    artworkWidth: double.infinity,
+                    artworkHeight: double.infinity,
+                    artworkFit: BoxFit.cover,
+                    artworkBorder: BorderRadius.zero,
+                    keepOldArtwork: true,
+                    nullArtworkWidget: _ArtworkPlaceholder(size: size),
+                    errorBuilder: (_, __, ___) => _ArtworkPlaceholder(size: size),
+                  )
+                : _ArtworkPlaceholder(size: size),
+
+            // Dancing character overlay (bottom left)
+            Positioned(
+              bottom: -10,
+              left: -10,
+              child: IgnorePointer(
+                child: SizedBox(
+                  width: size * 0.35,
+                  height: size * 0.35,
+                  child: Lottie.asset(
+                    state.selectedDancer,
+                    animate: state.isPlaying,
+                    repeat: true,
+                    fit: BoxFit.contain,
+                  ),
                 ),
-                errorBuilder: (_, __, ___) => _ArtworkPlaceholder(
-                  size: MediaQuery.of(context).size.width - (AppSpacing.md * 2),
-                ),
-              )
-            : _ArtworkPlaceholder(
-                size: MediaQuery.of(context).size.width - (AppSpacing.md * 2),
               ),
+            ),
+
+            // Dancer selection button (bottom right)
+            Positioned(
+              bottom: 8,
+              right: 8,
+              child: GestureDetector(
+                onTap: () => _showDancerSelectionSheet(context),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.gold,
+                    border: Border.all(color: AppColors.border, width: 2),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: AppColors.shadowNeutral,
+                        offset: Offset(2, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.accessibility_new,
+                        size: 14,
+                        color: AppColors.onSurface,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'DANCER',
+                        style: AppTextStyles.labelSm.copyWith(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.onSurface,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  void _showDancerSelectionSheet(BuildContext context) {
+    final playerBloc = context.read<PlayerBloc>();
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return BlocBuilder<PlayerBloc, PlayerState>(
+          bloc: playerBloc,
+          builder: (context, state) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: AppColors.surfaceContainerLowest,
+                border: Border(
+                  top: BorderSide(color: AppColors.border, width: 2),
+                ),
+              ),
+              child: SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title Bar
+                    Padding(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      child: Text(
+                        'SELECT DANCING CHARACTER',
+                        style: AppTextStyles.headlineSm.copyWith(
+                          fontSize: 16,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ),
+                    const Divider(height: 1, thickness: 2, color: AppColors.border),
+
+                    // Dancer Grid
+                    Padding(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      child: GridView.count(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 1.1,
+                        children: AppConstants.dancerAnimations.map((path) {
+                          final isSelected = state.selectedDancer == path;
+                          final name = _getDancerName(path);
+
+                          return GestureDetector(
+                            onTap: () {
+                              playerBloc.add(PlayerDancerChanged(path));
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppColors.primary.withValues(alpha: 0.1)
+                                    : AppColors.surfaceContainerLow,
+                                border: Border.all(
+                                  color: isSelected ? AppColors.primary : AppColors.border,
+                                  width: isSelected ? 2.5 : 1.5,
+                                ),
+                                boxShadow: isSelected
+                                    ? const [
+                                        BoxShadow(
+                                          color: AppColors.shadowPrimary,
+                                          offset: Offset(3, 3),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Expanded(
+                                    child: Lottie.asset(
+                                      path,
+                                      animate: true,
+                                      repeat: true,
+                                    ),
+                                  ),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(vertical: 4),
+                                    color: isSelected ? AppColors.primary : AppColors.border,
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      name,
+                                      style: AppTextStyles.labelSm.copyWith(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _getDancerName(String path) {
+    if (path.contains('cow')) return 'FITNESS COW';
+    if (path.contains('Astronaut')) return 'ASTRONAUT';
+    if (path.contains('Happy')) return 'HAPPY SPACEMAN';
+    if (path.contains('Pepe')) return 'DANCING PEPE';
+    return 'DANCER';
   }
 }
 

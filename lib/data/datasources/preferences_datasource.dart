@@ -89,6 +89,19 @@ class PreferencesDataSource {
   Future<void> saveLastPosition(int ms) =>
       _setInt(AppConstants.prefLastPosition, ms);
 
+  String getSelectedDancer() =>
+      _prefs.getString(AppConstants.prefSelectedDancer) ??
+      AppConstants.dancerAnimations.first;
+
+  Future<void> saveSelectedDancer(String path) async {
+    try {
+      await _prefs.setString(AppConstants.prefSelectedDancer, path);
+    } catch (e, st) {
+      AppLogger.error('Prefs setString failed: selected_dancer', tag: _tag, error: e, stackTrace: st);
+      throw StorageException('Failed to save selected_dancer: $e');
+    }
+  }
+
   // ── Private typed helpers (no magic strings, no dynamic casts) ────────────
   Future<void> _setInt(String key, int value) async {
     try {

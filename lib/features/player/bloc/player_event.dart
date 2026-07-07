@@ -74,3 +74,8 @@ final class _PlayerMediaItemChanged extends PlayerEvent {
 }
 
 final class PlayerInitializeRequested extends PlayerEvent {}
+
+final class PlayerDancerChanged extends PlayerEvent {
+  PlayerDancerChanged(this.dancerPath);
+  final String dancerPath;
+}

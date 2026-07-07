@@ -38,6 +38,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
     on<PlayerSleepTimerCancelled>(_onSleepTimerCancelled);
     on<PlayerQueueCleared>(_onQueueCleared);
     on<PlayerInitializeRequested>(_onInitialize);
+    on<PlayerDancerChanged>(_onDancerChanged);
     on<_PlayerPositionUpdated>(_onPositionUpdated);
     on<_PlayerStateUpdated>(_onStateUpdated);
     on<_PlayerSleepTimerTicked>(_onSleepTimerTicked);
@@ -102,10 +103,13 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
         RepeatMode.all => AudioServiceRepeatMode.all,
       });
 
+      final dancer = _prefs.getSelectedDancer();
+
       emit(state.copyWith(
         speed: speed,
         shuffleEnabled: shuffle,
         repeatMode: repeat,
+        selectedDancer: dancer,
       ));
 
       // Restore last active song and queue if available
@@ -414,5 +418,13 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
       AppLogger.warning('Failed to extract album art color palette: $e', tag: _tag);
     }
     return (null, null);
+  }
+
+  Future<void> _onDancerChanged(
+    PlayerDancerChanged event,
+    Emitter<PlayerState> emit,
+  ) async {
+    emit(state.copyWith(selectedDancer: event.dancerPath));
+    await _prefs.saveSelectedDancer(event.dancerPath);
   }
 }

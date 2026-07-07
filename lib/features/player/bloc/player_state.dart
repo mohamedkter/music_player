@@ -18,6 +18,7 @@ final class PlayerState extends Equatable {
     this.sleepTimerRemaining,
     this.primaryColor,
     this.secondaryColor,
+    this.selectedDancer = 'assets/animations/Astronaut and music.json',
   });
 
   final SongModel? currentSong;
@@ -34,6 +35,7 @@ final class PlayerState extends Equatable {
   final Duration? sleepTimerRemaining;
   final Color? primaryColor;
   final Color? secondaryColor;
+  final String selectedDancer;
 
   bool get hasError => errorMessage != null;
   bool get hasSong => currentSong != null;
@@ -59,6 +61,7 @@ final class PlayerState extends Equatable {
     Duration? sleepTimerRemaining,
     Color? primaryColor,
     Color? secondaryColor,
+    String? selectedDancer,
   }) {
     return PlayerState(
       currentSong: currentSong ?? this.currentSong,
@@ -75,6 +78,7 @@ final class PlayerState extends Equatable {
       sleepTimerRemaining: sleepTimerRemaining ?? this.sleepTimerRemaining,
       primaryColor: primaryColor ?? this.primaryColor,
       secondaryColor: secondaryColor ?? this.secondaryColor,
+      selectedDancer: selectedDancer ?? this.selectedDancer,
     );
   }
 
@@ -95,6 +99,7 @@ final class PlayerState extends Equatable {
       sleepTimerRemaining: null,
       primaryColor: primaryColor,
       secondaryColor: secondaryColor,
+      selectedDancer: selectedDancer,
     );
   }
 
@@ -114,5 +119,6 @@ final class PlayerState extends Equatable {
         sleepTimerRemaining,
         primaryColor,
         secondaryColor,
+        selectedDancer,
       ];
 }

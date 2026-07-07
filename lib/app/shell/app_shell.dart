@@ -8,19 +8,17 @@ import '../../core/errors/failures.dart';
 import '../../core/utils/either.dart';
 import '../../data/models/album_model.dart';
 import '../../data/models/artist_model.dart';
-import '../../data/models/song_model.dart';
 import '../../data/repositories/album_repository.dart';
 import '../../data/repositories/artist_repository.dart';
+import '../../data/repositories/playlist_repository.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../data/repositories/song_repository.dart';
 import '../../features/albums/bloc/albums_bloc.dart';
-import '../../features/albums/view/albums_screen.dart';
 import '../../features/home/bloc/home_bloc.dart';
 import '../../features/home/view/home_screen.dart';
 import '../../features/player/bloc/player_bloc.dart';
 import '../../features/player/view/now_playing_screen.dart';
 import '../../features/search/bloc/search_bloc.dart';
-import '../../features/search/view/search_screen.dart';
 import '../../features/settings/bloc/settings_bloc.dart';
 import '../../features/settings/view/settings_screen.dart';
 import '../../features/songs/bloc/songs_bloc.dart';
@@ -54,11 +52,10 @@ class _AppShellState extends State<AppShell> {
           body: IndexedStack(
             index: _currentIndex,
             children: const [
-              HomeScreen(),
-              SearchScreen(),
-              QueueScreen(),
-              SongsScreen(),
-              SettingsScreen(),
+              HomeScreen(),   // 0 — Discover
+              QueueScreen(),  // 1 — Queue
+              SongsScreen(),  // 2 — Library
+              SettingsScreen(), // 3 — Settings
             ],
           ),
           bottomNavigationBar: Column(
@@ -130,7 +127,7 @@ class _AppShellState extends State<AppShell> {
         lazy: false,
       ),
       BlocProvider<HomeBloc>(
-        create: (_) => HomeBloc(songRepo),
+        create: (_) => HomeBloc(songRepo, sl<PlaylistRepository>()),
       ),
       BlocProvider<SongsBloc>(
         create: (_) => SongsBloc(songRepo),

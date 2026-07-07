@@ -47,4 +47,11 @@ abstract final class AppConstants {
   static const String prefRepeatMode = 'repeat_mode';
   static const String prefPlaybackSpeed = 'playback_speed';
   static const String prefEqPreset = 'eq_preset';
+  static const String prefSelectedDancer = 'selected_dancer';
+  static const List<String> dancerAnimations = [
+    'assets/animations/Astronaut and music.json',
+    'assets/animations/Happy Spaceman.json',
+    'assets/animations/A fitness cow.json',
+    'assets/animations/Pepe Sticker Music.json',
+  ];
 }
