@@ -59,6 +59,8 @@ class LocalSongDataSource {
           AppLogger.warning('Audio permission denied', tag: _tag);
           throw MediaScanException('Audio permission denied by user');
         }
+        // Wait 1000ms for Android MediaStore to sync and update its cache
+        await Future<void>.delayed(const Duration(milliseconds: 1000));
       }
     } catch (e) {
       _permissionFuture = null; // Reset so next attempt can retry

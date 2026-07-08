@@ -12,6 +12,7 @@ import '../../player/bloc/player_bloc.dart';
 import '../../search/view/search_screen.dart';
 import '../../search/bloc/search_bloc.dart';
 import '../bloc/home_bloc.dart';
+import 'category_songs_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Entry point
@@ -58,7 +59,7 @@ class _HomeView extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Main content — CustomScrollView with sliver sections
+// Main content — CustomScrollView with Category Menu
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _HomeContent extends StatelessWidget {
@@ -76,59 +77,14 @@ class _HomeContent extends StatelessWidget {
         slivers: [
           // ── Tappable Search Bar ─────────────────────────────────────────
           SliverToBoxAdapter(child: _HomeSearchBar()),
-          // ── Section 1: RECENT ───────────────────────────────────────────
-          if (state.recentlyPlayed.isNotEmpty) ...[
-            _SliverSectionHeader(
-              title: 'RECENT',
-              accent: AppColors.primary,
-            ),
-            _SliverHorizontalSongs(
-              songs: state.recentlyPlayed,
-              cardSize: 150,
-              showIndex: false,
-            ),
-          ],
 
-          // ── Section 2: PLAYLISTS BANNER ─────────────────────────────────
-          if (state.playlists.isNotEmpty) ...[
-            _SliverSectionHeader(
-              title: 'PLAYLISTS',
-              accent: AppColors.gold,
-            ),
-            _SliverHorizontalPlaylists(playlists: state.playlists),
-          ],
-
-          // ── Section 3: FAVORITES ─────────────────────────────────────────
-          if (state.favorites.isNotEmpty) ...[
-            _SliverSectionHeader(
-              title: 'FAVORITES',
-              accent: const Color(0xFFE05C5C),
-            ),
-            _SliverHorizontalSongs(
-              songs: state.favorites.take(12).toList(),
-              cardSize: 140,
-              showIndex: false,
-              accentColor: const Color(0xFFE05C5C),
-            ),
-          ],
-
-          // ── Section 4: RECENTLY ADDED ─────────────────────────────────
-          if (state.recentlyAdded.isNotEmpty) ...[
-            _SliverSectionHeader(
-              title: 'RECENTLY ADDED',
-              accent: AppColors.onSurfaceVariant,
-            ),
-            _SliverHorizontalSongs(
-              songs: state.recentlyAdded.take(12).toList(),
-              cardSize: 130,
-              showIndex: true,
-            ),
-          ],
+          // ── Category List Menu ──────────────────────────────────────────
+          SliverToBoxAdapter(child: _HomeCategoriesMenu(state: state)),
 
           // ── Divider ────────────────────────────────────────────────────
           const SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
               child: _BrutalistDivider(label: 'ALL MEDIA'),
             ),
           ),
@@ -238,267 +194,168 @@ class _HomeSearchBar extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Section header
+// Home Categories Menu List
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _SliverSectionHeader extends StatelessWidget {
-  const _SliverSectionHeader({
+class _HomeCategoriesMenu extends StatelessWidget {
+  const _HomeCategoriesMenu({required this.state});
+  final HomeLoaded state;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <_CategoryItem>[];
+
+    if (state.recentlyPlayed.isNotEmpty) {
+      items.add(_CategoryItem(
+        title: 'RECENTLY PLAYED',
+        subtitle: '${state.recentlyPlayed.length} TRACKS',
+        songId: state.recentlyPlayed.first.id,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => CategorySongsScreen(
+              title: 'RECENTLY PLAYED',
+              songs: state.recentlyPlayed,
+            ),
+          ),
+        ),
+      ));
+    }
+
+    if (state.mostPlayed.isNotEmpty) {
+      items.add(_CategoryItem(
+        title: 'MOST PLAYED',
+        subtitle: '${state.mostPlayed.length} TRACKS',
+        songId: state.mostPlayed.first.id,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => CategorySongsScreen(
+              title: 'MOST PLAYED',
+              songs: state.mostPlayed,
+            ),
+          ),
+        ),
+      ));
+    }
+
+    if (state.favorites.isNotEmpty) {
+      items.add(_CategoryItem(
+        title: 'FAVORITES',
+        subtitle: '${state.favorites.length} TRACKS',
+        songId: state.favorites.first.id,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => CategorySongsScreen(
+              title: 'FAVORITE SONGS',
+              songs: state.favorites,
+            ),
+          ),
+        ),
+      ));
+    }
+
+    if (state.playlists.isNotEmpty) {
+      final firstPlaylistWithSongs = state.playlists.firstWhere(
+        (p) => p.songs.isNotEmpty,
+        orElse: () => state.playlists.first,
+      );
+      items.add(_CategoryItem(
+        title: 'PLAYLISTS',
+        subtitle: '${state.playlists.length} PLAYLISTS',
+        songId: firstPlaylistWithSongs.songs.isNotEmpty
+            ? firstPlaylistWithSongs.songs.first.id
+            : null,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => PlaylistsListScreen(
+              playlists: state.playlists,
+            ),
+          ),
+        ),
+      ));
+    }
+
+    if (state.recentlyAdded.isNotEmpty) {
+      items.add(_CategoryItem(
+        title: 'RECENTLY ADDED',
+        subtitle: '${state.recentlyAdded.length} TRACKS',
+        songId: state.recentlyAdded.first.id,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => CategorySongsScreen(
+              title: 'RECENTLY ADDED',
+              songs: state.recentlyAdded,
+            ),
+          ),
+        ),
+      ));
+    }
+
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return SizedBox(
+      height: 140,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 8),
+        physics: const BouncingScrollPhysics(),
+        itemCount: items.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (ctx, i) {
+          final item = items[i];
+          return _CategoryMenuCard(
+            title: item.title,
+            subtitle: item.subtitle,
+            songId: item.songId,
+            onTap: item.onTap,
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _CategoryItem {
+  _CategoryItem({
     required this.title,
-    required this.accent,
+    required this.subtitle,
+    this.songId,
+    required this.onTap,
+  });
+  final String title;
+  final String subtitle;
+  final int? songId;
+  final VoidCallback onTap;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Category Menu Card Widget
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CategoryMenuCard extends StatelessWidget {
+  const _CategoryMenuCard({
+    required this.title,
+    required this.subtitle,
+    this.songId,
+    required this.onTap,
   });
 
   final String title;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.md, AppSpacing.lg, AppSpacing.md, AppSpacing.sm,
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Colored accent bar
-            Container(
-              width: 4,
-              height: 22,
-              color: accent,
-              margin: const EdgeInsets.only(right: 10),
-            ),
-            Text(
-              title,
-              style: AppTextStyles.headlineSm.copyWith(
-                letterSpacing: 2.0,
-                fontSize: 16,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Horizontal songs row
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _SliverHorizontalSongs extends StatelessWidget {
-  const _SliverHorizontalSongs({
-    required this.songs,
-    required this.cardSize,
-    required this.showIndex,
-    this.accentColor,
-  });
-
-  final List<SongModel> songs;
-  final double cardSize;
-  final bool showIndex;
-  final Color? accentColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return SliverToBoxAdapter(
-      child: SizedBox(
-        height: cardSize + 54,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          physics: const BouncingScrollPhysics(),
-          itemCount: songs.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 12),
-          itemBuilder: (ctx, i) {
-            final song = songs[i];
-            return _SongCard(
-              song: song,
-              size: cardSize,
-              index: showIndex ? i + 1 : null,
-              accentColor: accentColor,
-              onTap: () => ctx.read<PlayerBloc>().add(
-                    PlayerSongRequested(song: song, queue: songs),
-                  ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Song card
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _SongCard extends StatelessWidget {
-  const _SongCard({
-    required this.song,
-    required this.size,
-    required this.onTap,
-    this.index,
-    this.accentColor,
-  });
-
-  final SongModel song;
-  final double size;
+  final String subtitle;
+  final int? songId;
   final VoidCallback onTap;
-  final int? index;
-  final Color? accentColor;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: SizedBox(
-        width: size,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Artwork
-            Stack(
-              children: [
-                Container(
-                  width: size,
-                  height: size,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerHigh,
-                    border: Border.all(color: AppColors.border, width: 2),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: AppColors.shadowNeutral,
-                        offset: Offset(3, 3),
-                      ),
-                    ],
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: oaq.QueryArtworkWidget(
-                    id: song.id,
-                    type: oaq.ArtworkType.AUDIO,
-                    artworkWidth: size,
-                    artworkHeight: size,
-                    artworkFit: BoxFit.cover,
-                    artworkBorder: BorderRadius.zero,
-                    keepOldArtwork: true,
-                    nullArtworkWidget: Container(
-                      color: AppColors.surfaceContainerHigh,
-                      child: const Icon(
-                        Icons.music_note,
-                        color: AppColors.outline,
-                        size: 40,
-                      ),
-                    ),
-                    errorBuilder: (_, __, ___) => Container(
-                      color: AppColors.surfaceContainerHigh,
-                      child: const Icon(
-                        Icons.music_note,
-                        color: AppColors.outline,
-                        size: 40,
-                      ),
-                    ),
-                  ),
-                ),
-                // Index badge
-                if (index != null)
-                  Positioned(
-                    top: 6,
-                    left: 6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 3,
-                      ),
-                      color: accentColor ?? AppColors.border,
-                      child: Text(
-                        '$index',
-                        style: AppTextStyles.labelSm.copyWith(
-                          color: Colors.white,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // Title
-            Text(
-              song.title,
-              style: AppTextStyles.bodySm.copyWith(
-                color: AppColors.onSurface,
-                fontWeight: FontWeight.w600,
-                height: 1.2,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            // Artist
-            Text(
-              song.artist,
-              style: AppTextStyles.labelSm.copyWith(fontSize: 10),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Horizontal playlists row — large banner cards
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _SliverHorizontalPlaylists extends StatelessWidget {
-  const _SliverHorizontalPlaylists({required this.playlists});
-  final List<PlaylistModel> playlists;
-
-  @override
-  Widget build(BuildContext context) {
-    return SliverToBoxAdapter(
-      child: SizedBox(
-        height: 180,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          physics: const BouncingScrollPhysics(),
-          itemCount: playlists.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 12),
-          itemBuilder: (ctx, i) {
-            final playlist = playlists[i];
-            return _PlaylistBannerCard(playlist: playlist);
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class _PlaylistBannerCard extends StatelessWidget {
-  const _PlaylistBannerCard({required this.playlist});
-  final PlaylistModel playlist;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasCoverSong = playlist.songs.isNotEmpty;
-    final firstSongId = hasCoverSong ? playlist.songs.first.id : null;
-
-    return GestureDetector(
-      onTap: () {
-        if (playlist.songs.isNotEmpty) {
-          context.read<PlayerBloc>().add(
-                PlayerSongRequested(
-                  song: playlist.songs.first,
-                  queue: playlist.songs,
-                ),
-              );
-        }
-      },
       child: Container(
-        width: 200,
-        height: 180,
+        width: 180,
+        height: 124,
         decoration: BoxDecoration(
           border: Border.all(color: AppColors.border, width: 2),
           color: AppColors.surfaceContainerHigh,
@@ -513,21 +370,22 @@ class _PlaylistBannerCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Background artwork from first song
-            if (firstSongId != null)
+            // Background Artwork
+            if (songId != null)
               oaq.QueryArtworkWidget(
-                id: firstSongId,
+                id: songId!,
                 type: oaq.ArtworkType.AUDIO,
                 artworkWidth: double.infinity,
                 artworkHeight: double.infinity,
                 artworkFit: BoxFit.cover,
                 artworkBorder: BorderRadius.zero,
                 keepOldArtwork: true,
-                nullArtworkWidget: _PlaylistPlaceholder(),
-                errorBuilder: (_, __, ___) => _PlaylistPlaceholder(),
+                nullArtworkWidget: const _CategoryPlaceholder(),
+                errorBuilder: (_, __, ___) => const _CategoryPlaceholder(),
               )
             else
-              _PlaylistPlaceholder(),
+              const _CategoryPlaceholder(),
+
             // Dark gradient overlay
             DecoratedBox(
               decoration: BoxDecoration(
@@ -535,53 +393,38 @@ class _PlaylistBannerCard extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: 0.75),
+                    Colors.black.withValues(alpha: 0.15),
+                    Colors.black.withValues(alpha: 0.8),
                   ],
-                  stops: const [0.4, 1.0],
+                  stops: const [0.3, 1.0],
                 ),
               ),
             ),
-            // Text overlay at bottom
-            Positioned(
-              left: 10,
-              right: 10,
-              bottom: 10,
+
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    color: AppColors.gold,
-                    child: Text(
-                      'PLAYLIST',
-                      style: AppTextStyles.labelSm.copyWith(
-                        color: AppColors.onSurface,
-                        fontSize: 9,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
                   Text(
-                    playlist.name.toUpperCase(),
-                    style: AppTextStyles.headlineSm.copyWith(
+                    title,
+                    style: AppTextStyles.labelMd.copyWith(
                       color: Colors.white,
-                      fontSize: 15,
-                      height: 1.2,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      letterSpacing: 1.0,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: 2),
                   Text(
-                    '${playlist.songCount} TRACKS',
+                    subtitle,
                     style: AppTextStyles.labelSm.copyWith(
                       color: Colors.white70,
-                      fontSize: 10,
+                      fontSize: 9,
                     ),
                   ),
                 ],
@@ -594,15 +437,17 @@ class _PlaylistBannerCard extends StatelessWidget {
   }
 }
 
-class _PlaylistPlaceholder extends StatelessWidget {
+class _CategoryPlaceholder extends StatelessWidget {
+  const _CategoryPlaceholder();
+
   @override
   Widget build(BuildContext context) {
     return Container(
       color: AppColors.surfaceContainerHighest,
       child: const Icon(
-        Icons.queue_music,
+        Icons.music_note,
         color: AppColors.outline,
-        size: 48,
+        size: 32,
       ),
     );
   }

@@ -10,18 +10,22 @@ import '../../../core/utils/either.dart';
 
 class PlaylistRepositoryImpl implements PlaylistRepository {
   PlaylistRepositoryImpl(this._prefs, this._songRepository) {
-    _loadPlaylists();
+    // Store the future so getAllPlaylists() can await it before returning.
+    _loadFuture = _loadPlaylists();
   }
 
   final SharedPreferences _prefs;
   final SongRepository _songRepository;
-  
+
   static const _prefPlaylistsKey = 'pref_playlists_json_list';
 
   // Reactive stream of playlists
   final _playlistsSubject = BehaviorSubject<List<PlaylistModel>>.seeded([]);
 
-  void _loadPlaylists() async {
+  /// Completes when the initial load from SharedPreferences is done.
+  late Future<void> _loadFuture;
+
+  Future<void> _loadPlaylists() async {
     try {
       final jsonList = _prefs.getStringList(_prefPlaylistsKey) ?? [];
       final List<PlaylistModel> loaded = [];
@@ -99,6 +103,9 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
 
   @override
   Future<Either<Failure, List<PlaylistModel>>> getAllPlaylists() async {
+    // Wait for the initial load to finish so we never return an empty list
+    // just because _loadPlaylists() hasn't completed yet.
+    await _loadFuture;
     return right(_playlistsSubject.value);
   }
 

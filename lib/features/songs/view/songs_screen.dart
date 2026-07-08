@@ -182,23 +182,33 @@ class _SongsList extends StatelessWidget {
           itemCount: songs.length,
           itemBuilder: (context, index) {
             final song = songs[index];
-            return SongListItem(
-              songId: song.id,
-              title: song.title,
-              artist: song.artist,
-              album: song.album,
-              durationMs: song.duration,
-              coverPath: song.coverPath,
-              isFavorite: song.isFavorite,
-              onTap: () {
-                context.read<PlayerBloc>().add(
-                  PlayerSongRequested(song: song, queue: songs.cast()),
+            return BlocBuilder<PlayerBloc, PlayerState>(
+              buildWhen: (prev, next) =>
+                  prev.currentSong?.id != next.currentSong?.id ||
+                  prev.isPlaying != next.isPlaying,
+              builder: (context, playerState) {
+                final isPlaying = playerState.isPlaying &&
+                    playerState.currentSong?.id == song.id;
+                return SongListItem(
+                  songId: song.id,
+                  title: song.title,
+                  artist: song.artist,
+                  album: song.album,
+                  durationMs: song.duration,
+                  coverPath: song.coverPath,
+                  isPlaying: isPlaying,
+                  isFavorite: song.isFavorite,
+                  onTap: () {
+                    context.read<PlayerBloc>().add(
+                      PlayerSongRequested(song: song, queue: songs.cast()),
+                    );
+                  },
+                  onFavoriteTap: () => context
+                      .read<SongsBloc>()
+                      .add(SongFavoriteToggled(song.id)),
+                  onMoreTap: () => _showSongOptions(context, song),
                 );
               },
-              onFavoriteTap: () => context
-                  .read<SongsBloc>()
-                  .add(SongFavoriteToggled(song.id)),
-              onMoreTap: () => _showSongOptions(context, song),
             );
           },
         ),

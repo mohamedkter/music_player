@@ -89,16 +89,26 @@ class _ResultsList extends StatelessWidget {
             onSeeAll: () {},
           ),
           ...state.songs.map(
-            (s) => SongListItem(
-              songId: s.id,
-              title: s.title,
-              artist: s.artist,
-              durationMs: s.duration,
-              coverPath: s.coverPath,
-              isFavorite: s.isFavorite,
-              onTap: () {
-                context.read<PlayerBloc>().add(
-                  PlayerSongRequested(song: s, queue: state.songs.cast()),
+            (s) => BlocBuilder<PlayerBloc, PlayerState>(
+              buildWhen: (prev, next) =>
+                  prev.currentSong?.id != next.currentSong?.id ||
+                  prev.isPlaying != next.isPlaying,
+              builder: (context, playerState) {
+                final isPlaying = playerState.isPlaying &&
+                    playerState.currentSong?.id == s.id;
+                return SongListItem(
+                  songId: s.id,
+                  title: s.title,
+                  artist: s.artist,
+                  durationMs: s.duration,
+                  coverPath: s.coverPath,
+                  isPlaying: isPlaying,
+                  isFavorite: s.isFavorite,
+                  onTap: () {
+                    context.read<PlayerBloc>().add(
+                      PlayerSongRequested(song: s, queue: state.songs.cast()),
+                    );
+                  },
                 );
               },
             ),

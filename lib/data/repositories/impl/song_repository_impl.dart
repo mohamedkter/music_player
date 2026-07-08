@@ -32,7 +32,15 @@ class SongRepositoryImpl implements SongRepository {
   @override
   Future<Either<Failure, List<SongModel>>> getAllSongs() async {
     try {
-      _cache ??= await _fetch();
+      if (_cache == null || _cache!.isEmpty) {
+        final songs = await _fetch();
+        // Only cache if we got actual results — empty likely means
+        // MediaStore hasn't synced yet (e.g. right after permission grant).
+        if (songs.isNotEmpty) {
+          _cache = songs;
+        }
+        return right(songs);
+      }
       return right(_cache!);
     } on PermissionException catch (e) {
       return left(PermissionFailure(e.message));

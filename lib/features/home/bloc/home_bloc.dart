@@ -23,79 +23,110 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
   Future<void> _onLoad(HomeEvent event, Emitter<HomeState> emit) async {
     emit(HomeLoading());
-    try {
-      // Run all queries concurrently for faster load
-      final results = await Future.wait([
-        _songRepository.getRecentlyPlayed(limit: 12),
-        _songRepository.getMostPlayed(limit: 12),
-        _songRepository.getFavorites(),
-        _songRepository.getRecentlyAdded(limit: 30),
-        _songRepository.getAllSongs(),
-        _playlistRepository.getAllPlaylists(),
-      ]);
 
-      final recentlyPlayed =
-          (results[0] as dynamic).fold((_) => <SongModel>[], (s) => s)
-              as List<SongModel>;
-      final mostPlayed =
-          (results[1] as dynamic).fold((_) => <SongModel>[], (s) => s)
-              as List<SongModel>;
-      final favorites =
-          (results[2] as dynamic).fold((_) => <SongModel>[], (s) => s)
-              as List<SongModel>;
-      final recentlyAdded =
-          (results[3] as dynamic).fold((_) => <SongModel>[], (s) => s)
-              as List<SongModel>;
-      final allSongs =
-          (results[4] as dynamic).fold((_) => <SongModel>[], (s) => s)
-              as List<SongModel>;
-      final playlists =
-          (results[5] as dynamic).fold((_) => <PlaylistModel>[], (s) => s)
-              as List<PlaylistModel>;
+    // On Android, MediaStore may not be ready immediately after permission is
+    // granted on first launch. We retry up to 5 times with a growing delay
+    // so the user never has to pull-to-refresh manually.
+    const maxRetries = 5;
+    const retryDelay = Duration(milliseconds: 1500);
 
-      // Derive albums & artists from songs (group locally — no extra permission needed)
-      final albumMap = <String, HomeAlbumEntry>{};
-      for (final s in allSongs) {
-        if (!albumMap.containsKey(s.album)) {
-          albumMap[s.album] = HomeAlbumEntry(
-            id: s.id,
-            title: s.album,
-            artist: s.artist,
-            songId: s.id,
+    for (var attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        // Run all queries concurrently for faster load
+        final results = await Future.wait([
+          _songRepository.getRecentlyPlayed(limit: 12),
+          _songRepository.getMostPlayed(limit: 12),
+          _songRepository.getFavorites(),
+          _songRepository.getRecentlyAdded(limit: 30),
+          _songRepository.getAllSongs(),
+          _playlistRepository.getAllPlaylists(),
+        ]);
+
+        final recentlyPlayed =
+            (results[0] as dynamic).fold((_) => <SongModel>[], (s) => s)
+                as List<SongModel>;
+        final mostPlayed =
+            (results[1] as dynamic).fold((_) => <SongModel>[], (s) => s)
+                as List<SongModel>;
+        final favorites =
+            (results[2] as dynamic).fold((_) => <SongModel>[], (s) => s)
+                as List<SongModel>;
+        final recentlyAdded =
+            (results[3] as dynamic).fold((_) => <SongModel>[], (s) => s)
+                as List<SongModel>;
+        final allSongs =
+            (results[4] as dynamic).fold((_) => <SongModel>[], (s) => s)
+                as List<SongModel>;
+        final playlists =
+            (results[5] as dynamic).fold((_) => <PlaylistModel>[], (s) => s)
+                as List<PlaylistModel>;
+
+        // If songs came back empty and we still have retries left, wait and
+        // try again — MediaStore may not have synced yet after permission grant.
+        if (allSongs.isEmpty && attempt < maxRetries) {
+          AppLogger.info(
+            'Songs empty on attempt ${attempt + 1}/$maxRetries — retrying in ${retryDelay.inMilliseconds}ms',
+            tag: _tag,
           );
+          await Future<void>.delayed(retryDelay);
+          continue;
         }
-      }
 
-      final artistMap = <String, HomeArtistEntry>{};
-      for (final s in allSongs) {
-        final key = s.artist;
-        if (!artistMap.containsKey(key)) {
-          artistMap[key] = HomeArtistEntry(name: s.artist, songId: s.id);
-        } else {
-          artistMap[key]!.count++;
+        // Derive albums & artists from songs (group locally — no extra permission needed)
+        final albumMap = <String, HomeAlbumEntry>{};
+        for (final s in allSongs) {
+          if (!albumMap.containsKey(s.album)) {
+            albumMap[s.album] = HomeAlbumEntry(
+              id: s.id,
+              title: s.album,
+              artist: s.artist,
+              songId: s.id,
+            );
+          }
         }
+
+        final artistMap = <String, HomeArtistEntry>{};
+        for (final s in allSongs) {
+          final key = s.artist;
+          if (!artistMap.containsKey(key)) {
+            artistMap[key] = HomeArtistEntry(name: s.artist, songId: s.id);
+          } else {
+            artistMap[key]!.count++;
+          }
+        }
+
+        // Video audio — songs whose fileExtension is a video format
+        final videoAudio = allSongs
+            .where(
+                (s) => _videoExtensions.contains(s.fileExtension.toLowerCase()))
+            .toList();
+
+        emit(HomeLoaded(
+          recentlyPlayed: recentlyPlayed,
+          mostPlayed: mostPlayed,
+          favorites: favorites,
+          recentlyAdded: recentlyAdded,
+          allSongs: allSongs,
+          playlists: playlists,
+          albums: albumMap.values.toList(),
+          artists: artistMap.values.toList(),
+          videoAudio: videoAudio,
+          activeFilter: HomeFilter.all,
+        ));
+        return; // Success — exit the loop
+      } catch (e, st) {
+        if (attempt == maxRetries) {
+          AppLogger.error('HomeBloc load', tag: _tag, error: e, stackTrace: st);
+          emit(HomeError(e.toString()));
+          return;
+        }
+        // Transient error — wait and retry
+        AppLogger.warning(
+          'HomeBloc load error on attempt ${attempt + 1}: $e — retrying',
+          tag: _tag,
+        );
+        await Future<void>.delayed(retryDelay);
       }
-
-      // Video audio — songs whose fileExtension is a video format
-      final videoAudio = allSongs
-          .where((s) => _videoExtensions.contains(s.fileExtension.toLowerCase()))
-          .toList();
-
-      emit(HomeLoaded(
-        recentlyPlayed: recentlyPlayed,
-        mostPlayed: mostPlayed,
-        favorites: favorites,
-        recentlyAdded: recentlyAdded,
-        allSongs: allSongs,
-        playlists: playlists,
-        albums: albumMap.values.toList(),
-        artists: artistMap.values.toList(),
-        videoAudio: videoAudio,
-        activeFilter: HomeFilter.all,
-      ));
-    } catch (e, st) {
-      AppLogger.error('HomeBloc load', tag: _tag, error: e, stackTrace: st);
-      emit(HomeError(e.toString()));
     }
   }
 

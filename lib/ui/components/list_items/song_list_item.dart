@@ -11,7 +11,7 @@ import '../../../core/utils/duration_formatter.dart';
 /// Supports:
 /// - Artwork thumbnail
 /// - Favorite & more-options actions
-/// - Active / playing highlight
+/// - Active / playing highlight (Lottie spectrum animation only)
 /// - Track number display (optional)
 ///
 /// Usage:
@@ -49,6 +49,7 @@ class SongListItem extends StatelessWidget {
   final String title;
   final String artist;
   final int durationMs;
+
   /// Song ID from MediaStore — used to load album art via QueryArtworkWidget.
   final int? songId;
   final String? album;
@@ -65,31 +66,24 @@ class SongListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor = isPlaying ? AppColors.primary : AppColors.onSurface;
-
     return InkWell(
       onTap: onTap,
       overlayColor: WidgetStateProperty.all(AppColors.hoverFill),
       child: Container(
         padding: AppSpacing.listItemPadding,
         decoration: BoxDecoration(
-          color: isPlaying
-              ? AppColors.hoverFill
-              : Colors.transparent,
+          color: Colors.transparent,
           border: Border(
-            bottom: BorderSide(
-              color: AppColors.outlineVariant,
-              width: 2,
-            ),
+            bottom: BorderSide(color: AppColors.outlineVariant, width: 2),
           ),
         ),
         child: Row(
           children: [
-            // ── Artwork / Track Number ────────────────────────────────────
-            _buildLeading(context),
+            // ── Artwork / Track Number ──────────────────────────────────────
+            _buildLeading(),
             AppSpacing.hGap(AppSpacing.md),
 
-            // ── Title + Artist ─────────────────────────────────────────────
+            // ── Title + Artist ──────────────────────────────────────────────
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,9 +92,8 @@ class SongListItem extends StatelessWidget {
                   Text(
                     title,
                     style: AppTextStyles.bodyMd.copyWith(
-                      color: textColor,
-                      fontWeight:
-                          isPlaying ? FontWeight.w600 : FontWeight.w400,
+                      color: isPlaying ? AppColors.primary : AppColors.onSurface,
+                      fontWeight: isPlaying ? FontWeight.w600 : FontWeight.w400,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -116,32 +109,23 @@ class SongListItem extends StatelessWidget {
               ),
             ),
 
-            // ── Duration + Actions ────────────────────────────────────────
-            if (trailing != null)
-              trailing!
-            else
-              _buildTrailing(textColor),
+            // ── Duration + Actions ──────────────────────────────────────────
+            if (trailing != null) trailing! else _buildTrailing(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLeading(BuildContext context) {
+  Widget _buildLeading() {
     if (trackNumber != null) {
       return SizedBox(
         width: 40,
         child: Center(
-          child: isPlaying
-              ? Lottie.asset(
-                  'assets/animations/Music spectrum.json',
-                  width: 24,
-                  height: 24,
-                )
-              : Text(
-                  trackNumber.toString(),
-                  style: AppTextStyles.labelMd,
-                ),
+          child: Text(
+            trackNumber.toString(),
+            style: AppTextStyles.labelMd,
+          ),
         ),
       );
     }
@@ -152,24 +136,7 @@ class SongListItem extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border.all(color: AppColors.outlineVariant, width: 1),
       ),
-      child: isPlaying
-          ? Stack(
-              fit: StackFit.expand,
-              children: [
-                _buildArtwork(),
-                Container(
-                  color: Colors.black.withValues(alpha: 0.4),
-                ),
-                Center(
-                  child: Lottie.asset(
-                    'assets/animations/Music spectrum.json',
-                    width: 32,
-                    height: 32,
-                  ),
-                ),
-              ],
-            )
-          : _buildArtwork(),
+      child: _buildArtwork(),
     );
   }
 
@@ -190,34 +157,37 @@ class SongListItem extends StatelessWidget {
     return const _ArtworkPlaceholder();
   }
 
-  Widget _buildTrailing(Color textColor) {
+  Widget _buildTrailing() {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          DurationFormatter.fromMilliseconds(durationMs),
-          style: AppTextStyles.labelSm,
-        ),
-        if (onFavoriteTap != null) ...[
-          AppSpacing.hGap(AppSpacing.xs),
-          GestureDetector(
-            onTap: onFavoriteTap,
-            child: Icon(
-              isFavorite ? Icons.favorite : Icons.favorite_border,
-              size: 18,
-              color: isFavorite ? AppColors.error : AppColors.outline,
+        // Lottie spectrum shown on the right when playing
+        if (isPlaying)
+          ClipRect(
+            child: SizedBox(
+              width: 56,
+              height: 56,
+              child: Transform.scale(
+                scale: 2.5,
+                child: Lottie.asset(
+                  'assets/animations/Music spectrum.json',
+                  width: 56,
+                  height: 56,
+                  fit: BoxFit.contain,
+                ),
+              ),
             ),
+          )
+        else
+          Text(
+            DurationFormatter.fromMilliseconds(durationMs),
+            style: AppTextStyles.labelSm,
           ),
-        ],
         if (onMoreTap != null) ...[
           AppSpacing.hGap(AppSpacing.xs),
           GestureDetector(
             onTap: onMoreTap,
-            child: Icon(
-              Icons.more_vert,
-              size: 18,
-              color: AppColors.outline,
-            ),
+            child: Icon(Icons.more_vert, size: 18, color: AppColors.outline),
           ),
         ],
       ],
@@ -225,56 +195,7 @@ class SongListItem extends StatelessWidget {
   }
 }
 
-/// Animated playing indicator (three bouncing bars).
-class _PlayingIndicator extends StatefulWidget {
-  const _PlayingIndicator();
-
-  @override
-  State<_PlayingIndicator> createState() => _PlayingIndicatorState();
-}
-
-class _PlayingIndicatorState extends State<_PlayingIndicator>
-    with TickerProviderStateMixin {
-  late final List<AnimationController> _controllers;
-  static const int _barCount = 3;
-
-  @override
-  void initState() {
-    super.initState();
-    _controllers = List.generate(_barCount, (i) {
-      final ctrl = AnimationController(
-        vsync: this,
-        duration: Duration(milliseconds: 400 + i * 100),
-      )..repeat(reverse: true);
-      return ctrl;
-    });
-  }
-
-  @override
-  void dispose() {
-    for (final c in _controllers) { c.dispose(); }
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: List.generate(_barCount, (i) {
-        return AnimatedBuilder(
-          animation: _controllers[i],
-          builder: (_, __) => Container(
-            width: 3,
-            height: 8 + _controllers[i].value * 10,
-            margin: const EdgeInsets.symmetric(horizontal: 1),
-            color: AppColors.primary,
-          ),
-        );
-      }),
-    );
-  }
-}
+// ── Artwork placeholder ───────────────────────────────────────────────────────
 
 class _ArtworkPlaceholder extends StatelessWidget {
   const _ArtworkPlaceholder();
