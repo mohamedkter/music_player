@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/navigation/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../data/models/album_model.dart';
 import '../../../ui/components/cards/album_art_card.dart';
 import '../../../ui/components/chips/app_chip.dart';
 import '../../../ui/components/feedback/app_empty_state.dart';
@@ -137,7 +139,8 @@ class _AlbumsGrid extends StatelessWidget {
                   variant: AppChipVariant.dark,
                 ),
                 onTap: () {
-                  // TODO: navigate to AlbumDetailScreen
+                  final albumModel = album as AlbumModel;
+                  AppRouter.pushAlbumDetail(context, album: albumModel);
                 },
               );
             },

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:on_audio_query/on_audio_query.dart' as oaq;
+import '../../../core/navigation/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -9,10 +10,7 @@ import '../../../data/models/playlist_model.dart';
 import '../../../ui/components/feedback/app_error_widget.dart';
 import '../../../ui/components/feedback/app_loading.dart';
 import '../../player/bloc/player_bloc.dart';
-import '../../search/view/search_screen.dart';
-import '../../search/bloc/search_bloc.dart';
 import '../bloc/home_bloc.dart';
-import 'category_songs_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Entry point
@@ -117,27 +115,7 @@ class _HomeSearchBar extends StatelessWidget {
         AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.xs,
       ),
       child: GestureDetector(
-        onTap: () {
-          Navigator.of(context).push(
-            PageRouteBuilder<void>(
-              pageBuilder: (_, __, ___) => MultiBlocProvider(
-                providers: [
-                  BlocProvider.value(
-                    value: context.read<SearchBloc>(),
-                  ),
-                  BlocProvider.value(
-                    value: context.read<PlayerBloc>(),
-                  ),
-                ],
-                child: const SearchScreen(),
-              ),
-              transitionsBuilder: (_, anim, __, child) => FadeTransition(
-                opacity: anim,
-                child: child,
-              ),
-            ),
-          );
-        },
+        onTap: () => AppRouter.pushSearch(context),
         // Absorb pointer so TextField inside doesn't get focus (decorative only)
         child: AbsorbPointer(
           child: Container(
@@ -210,14 +188,10 @@ class _HomeCategoriesMenu extends StatelessWidget {
         title: 'RECENTLY PLAYED',
         subtitle: '${state.recentlyPlayed.length} TRACKS',
         songId: state.recentlyPlayed.first.id,
-        onTap: () => Navigator.push(
+        onTap: () => AppRouter.pushCategorySongs(
           context,
-          MaterialPageRoute<void>(
-            builder: (_) => CategorySongsScreen(
-              title: 'RECENTLY PLAYED',
-              songs: state.recentlyPlayed,
-            ),
-          ),
+          title: 'RECENTLY PLAYED',
+          songs: state.recentlyPlayed,
         ),
       ));
     }
@@ -227,14 +201,10 @@ class _HomeCategoriesMenu extends StatelessWidget {
         title: 'MOST PLAYED',
         subtitle: '${state.mostPlayed.length} TRACKS',
         songId: state.mostPlayed.first.id,
-        onTap: () => Navigator.push(
+        onTap: () => AppRouter.pushCategorySongs(
           context,
-          MaterialPageRoute<void>(
-            builder: (_) => CategorySongsScreen(
-              title: 'MOST PLAYED',
-              songs: state.mostPlayed,
-            ),
-          ),
+          title: 'MOST PLAYED',
+          songs: state.mostPlayed,
         ),
       ));
     }
@@ -244,14 +214,10 @@ class _HomeCategoriesMenu extends StatelessWidget {
         title: 'FAVORITES',
         subtitle: '${state.favorites.length} TRACKS',
         songId: state.favorites.first.id,
-        onTap: () => Navigator.push(
+        onTap: () => AppRouter.pushCategorySongs(
           context,
-          MaterialPageRoute<void>(
-            builder: (_) => CategorySongsScreen(
-              title: 'FAVORITE SONGS',
-              songs: state.favorites,
-            ),
-          ),
+          title: 'FAVORITE SONGS',
+          songs: state.favorites,
         ),
       ));
     }
@@ -267,13 +233,9 @@ class _HomeCategoriesMenu extends StatelessWidget {
         songId: firstPlaylistWithSongs.songs.isNotEmpty
             ? firstPlaylistWithSongs.songs.first.id
             : null,
-        onTap: () => Navigator.push(
+        onTap: () => AppRouter.pushPlaylists(
           context,
-          MaterialPageRoute<void>(
-            builder: (_) => PlaylistsListScreen(
-              playlists: state.playlists,
-            ),
-          ),
+          playlists: state.playlists,
         ),
       ));
     }
@@ -283,14 +245,10 @@ class _HomeCategoriesMenu extends StatelessWidget {
         title: 'RECENTLY ADDED',
         subtitle: '${state.recentlyAdded.length} TRACKS',
         songId: state.recentlyAdded.first.id,
-        onTap: () => Navigator.push(
+        onTap: () => AppRouter.pushCategorySongs(
           context,
-          MaterialPageRoute<void>(
-            builder: (_) => CategorySongsScreen(
-              title: 'RECENTLY ADDED',
-              songs: state.recentlyAdded,
-            ),
-          ),
+          title: 'RECENTLY ADDED',
+          songs: state.recentlyAdded,
         ),
       ));
     }
@@ -571,8 +529,8 @@ class _FilteredMediaSliver extends StatelessWidget {
     return switch (state.activeFilter) {
       HomeFilter.all => _AllMediaGrid(state: state),
       HomeFilter.songs => _SongsGrid(songs: state.allSongs),
-      HomeFilter.albums => _AlbumsGrid(albums: state.albums),
-      HomeFilter.artists => _ArtistsGrid(artists: state.artists),
+      HomeFilter.albums => _AlbumsGrid(albums: state.albums, allSongs: state.allSongs),
+      HomeFilter.artists => _ArtistsGrid(artists: state.artists, allSongs: state.allSongs),
       HomeFilter.playlists => _PlaylistsGrid(playlists: state.playlists),
       HomeFilter.videos => _VideosGrid(songs: state.videoAudio),
     };
@@ -655,8 +613,9 @@ class _SongsGrid extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _AlbumsGrid extends StatelessWidget {
-  const _AlbumsGrid({required this.albums});
+  const _AlbumsGrid({required this.albums, required this.allSongs});
   final List<HomeAlbumEntry> albums;
+  final List<SongModel> allSongs;
 
   @override
   Widget build(BuildContext context) {
@@ -678,7 +637,7 @@ class _AlbumsGrid extends StatelessWidget {
         itemCount: albums.length,
         itemBuilder: (ctx, i) {
           final album = albums[i];
-          return _AlbumGridCard(album: album);
+          return _AlbumGridCard(album: album, allSongs: allSongs);
         },
       ),
     );
@@ -686,12 +645,24 @@ class _AlbumsGrid extends StatelessWidget {
 }
 
 class _AlbumGridCard extends StatelessWidget {
-  const _AlbumGridCard({required this.album});
+  const _AlbumGridCard({required this.album, required this.allSongs});
   final HomeAlbumEntry album;
+  final List<SongModel> allSongs;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: () {
+        final albumSongs = allSongs
+            .where((s) => s.album == album.title && s.artist == album.artist)
+            .toList();
+        AppRouter.pushCategorySongs(
+          context,
+          title: album.title,
+          songs: albumSongs.isNotEmpty ? albumSongs : allSongs,
+        );
+      },
+      child: Container(
       decoration: BoxDecoration(
         border: Border.all(color: AppColors.border, width: 2),
         color: AppColors.surfaceContainerLowest,
@@ -760,7 +731,8 @@ class _AlbumGridCard extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ), // Container
+    ); // GestureDetector
   }
 }
 
@@ -769,8 +741,9 @@ class _AlbumGridCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ArtistsGrid extends StatelessWidget {
-  const _ArtistsGrid({required this.artists});
+  const _ArtistsGrid({required this.artists, required this.allSongs});
   final List<HomeArtistEntry> artists;
+  final List<SongModel> allSongs;
 
   @override
   Widget build(BuildContext context) {
@@ -786,19 +759,31 @@ class _ArtistsGrid extends StatelessWidget {
       ),
       itemBuilder: (ctx, i) {
         final artist = artists[i];
-        return _ArtistListTile(artist: artist);
+        return _ArtistListTile(artist: artist, allSongs: allSongs);
       },
     );
   }
 }
 
 class _ArtistListTile extends StatelessWidget {
-  const _ArtistListTile({required this.artist});
+  const _ArtistListTile({required this.artist, required this.allSongs});
   final HomeArtistEntry artist;
+  final List<SongModel> allSongs;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: () {
+        final artistSongs = allSongs
+            .where((s) => s.artist == artist.name)
+            .toList();
+        AppRouter.pushCategorySongs(
+          context,
+          title: artist.name,
+          songs: artistSongs,
+        );
+      },
+      child: Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: 10,
@@ -861,12 +846,10 @@ class _ArtistListTile extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ), // Container
+    ); // GestureDetector
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Playlists grid
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _PlaylistsGrid extends StatelessWidget {
@@ -903,16 +886,11 @@ class _PlaylistListTile extends StatelessWidget {
         playlist.songs.isNotEmpty ? playlist.songs.first.id : null;
 
     return GestureDetector(
-      onTap: () {
-        if (playlist.songs.isNotEmpty) {
-          context.read<PlayerBloc>().add(
-                PlayerSongRequested(
-                  song: playlist.songs.first,
-                  queue: playlist.songs,
-                ),
-              );
-        }
-      },
+      onTap: () => AppRouter.pushCategorySongs(
+        context,
+        title: playlist.name,
+        songs: playlist.songs,
+      ),
       child: Container(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
@@ -1177,3 +1155,6 @@ class _EmptyFilterState extends StatelessWidget {
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Playlists grid

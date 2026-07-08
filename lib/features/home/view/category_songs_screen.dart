@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:on_audio_query/on_audio_query.dart' as oaq;
+import '../../../core/navigation/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -186,14 +187,10 @@ class PlaylistsListScreen extends StatelessWidget {
 
                         return InkWell(
                           onTap: () {
-                            Navigator.push(
+                            AppRouter.pushCategorySongs(
                               context,
-                              MaterialPageRoute<void>(
-                                builder: (_) => CategorySongsScreen(
-                                  title: pl.name,
-                                  songs: pl.songs,
-                                ),
-                              ),
+                              title: pl.name,
+                              songs: pl.songs,
                             );
                           },
                           child: Container(

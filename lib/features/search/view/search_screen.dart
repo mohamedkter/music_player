@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/navigation/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -57,7 +58,7 @@ class _Results extends StatelessWidget {
             title: 'Search failed',
             message: message,
           ),
-        SearchResults() => _ResultsList(state: state as SearchResults),
+        SearchResults() => _ResultsList(state: state),
       },
     );
   }
@@ -149,7 +150,7 @@ class _ResultsList extends StatelessWidget {
           _SectionLabel(
             label: 'Albums',
             count: state.albums.length,
-            onSeeAll: () {},
+            onSeeAll: () => AppRouter.pushAlbums(context),
           ),
           ...state.albums.map(
             (a) => ListTile(
@@ -167,7 +168,7 @@ class _ResultsList extends StatelessWidget {
                 '${a.artist} · ${a.numberOfSongs} songs',
                 style: AppTextStyles.labelSm,
               ),
-              onTap: () {},
+              onTap: () => AppRouter.pushAlbumDetail(context, album: a),
             ),
           ),
         ],

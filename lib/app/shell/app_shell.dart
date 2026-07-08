@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:audio_service/audio_service.dart';
 import '../../core/di/service_locator.dart';
+import '../../core/navigation/app_router.dart';
 import '../../core/utils/audio_handler.dart';
 import '../../data/datasources/preferences_datasource.dart';
 import '../../core/errors/failures.dart';
@@ -17,7 +18,6 @@ import '../../features/albums/bloc/albums_bloc.dart';
 import '../../features/home/bloc/home_bloc.dart';
 import '../../features/home/view/home_screen.dart';
 import '../../features/player/bloc/player_bloc.dart';
-import '../../features/player/view/now_playing_screen.dart';
 import '../../features/search/bloc/search_bloc.dart';
 import '../../features/settings/bloc/settings_bloc.dart';
 import '../../features/settings/view/settings_screen.dart';
@@ -93,23 +93,7 @@ class _AppShellState extends State<AppShell> {
   }
 
   void _openNowPlaying(BuildContext context) {
-    Navigator.of(context).push(
-      PageRouteBuilder<void>(
-        pageBuilder: (_, __, ___) => BlocProvider.value(
-          value: context.read<PlayerBloc>(),
-          child: const NowPlayingScreen(),
-        ),
-        transitionsBuilder: (_, anim, __, child) => SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 1),
-            end: Offset.zero,
-          ).animate(
-            CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
-          ),
-          child: child,
-        ),
-      ),
-    );
+    AppRouter.pushNowPlaying(context);
   }
 
   List<BlocProvider> _buildProviders() {
@@ -182,26 +166,6 @@ class _PlayerStateAdapter implements MiniPlayerState {
 
   @override
   Duration get duration => _state.duration;
-}
-
-// ── Placeholder screens ───────────────────────────────────────────────────────
-
-class _PlaylistsPlaceholder extends StatelessWidget {
-  const _PlaylistsPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Playlists')),
-      body: Center(
-        child: Text(
-          'Playlists\n(coming soon)',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-      ),
-    );
-  }
 }
 
 // ── Stub repositories (until album/artist repos are fully wired to DI) ───────

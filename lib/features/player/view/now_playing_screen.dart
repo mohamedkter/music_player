@@ -6,9 +6,9 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/navigation/app_router.dart';
 import '../../../core/utils/duration_formatter.dart';
 import '../bloc/player_bloc.dart';
-import 'queue_screen.dart';
 import 'widgets/speed_bottom_sheet.dart';
 import 'widgets/sleep_timer_bottom_sheet.dart';
 import '../../../../ui/components/dialogs/add_to_playlist_sheet.dart';
@@ -176,15 +176,7 @@ class _Header extends StatelessWidget {
                 label: 'QUEUE',
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute<void>(
-                      builder: (_) => BlocProvider.value(
-                        value: playerBloc,
-                        child: const QueueScreen(),
-                      ),
-                    ),
-                  );
+                  AppRouter.pushQueue(context);
                 },
               ),
               _OptionTile(

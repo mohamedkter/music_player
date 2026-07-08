@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/bloc/theme/theme_bloc.dart';
 import '../core/di/service_locator.dart';
+import '../core/navigation/app_router.dart';
 import '../core/theme/app_theme.dart';
 import 'shell/app_shell.dart';
 
@@ -10,7 +11,8 @@ import 'shell/app_shell.dart';
 /// Responsibilities (and only these):
 /// - Provide the [ThemeBloc] singleton from DI
 /// - React to theme changes via [BlocBuilder]
-/// - Hand off to [AppShell] for all navigation
+/// - Register [AppRouter.onGenerateRoute] for named navigation
+/// - Hand off to [AppShell] for tab navigation
 ///
 /// No business logic lives here.
 class App extends StatelessWidget {
@@ -27,6 +29,7 @@ class App extends StatelessWidget {
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
           themeMode: themeState.mode,
+          onGenerateRoute: AppRouter.onGenerateRoute,
           home: const AppShell(),
         ),
       ),
