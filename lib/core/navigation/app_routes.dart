@@ -14,6 +14,9 @@ abstract final class AppRoutes {
   static const String search = '/search';
   static const String albums = '/albums';
   static const String albumDetail = '/albums/detail';
+  static const String artistDetail = '/artists/detail';
+  static const String artists = '/artists';
+  static const String folders = '/folders';
 
   AppRoutes._();
 }

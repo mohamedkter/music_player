@@ -87,7 +87,14 @@ class _ResultsList extends StatelessWidget {
           _SectionLabel(
             label: 'Songs',
             count: state.songs.length,
-            onSeeAll: () {},
+            onSeeAll: () {
+              // Navigate to CategorySongsScreen with all matching songs
+              AppRouter.pushCategorySongs(
+                context,
+                title: 'Songs — "${state.query}"',
+                songs: state.songs,
+              );
+            },
           ),
           ...state.songs.map(
             (s) => BlocBuilder<PlayerBloc, PlayerState>(
@@ -121,7 +128,7 @@ class _ResultsList extends StatelessWidget {
           _SectionLabel(
             label: 'Artists',
             count: state.artists.length,
-            onSeeAll: () {},
+            onSeeAll: () {},  // Artist list screen — future feature
           ),
           ...state.artists.map(
             (a) => ListTile(
@@ -140,7 +147,17 @@ class _ResultsList extends StatelessWidget {
                 '${a.numberOfTracks} songs',
                 style: AppTextStyles.labelSm,
               ),
-              onTap: () {},
+              onTap: () {
+                // Show all songs by this artist from the current search results
+                final artistSongs = state.songs
+                    .where((s) => s.artist == a.name)
+                    .toList();
+                AppRouter.pushCategorySongs(
+                  context,
+                  title: a.name,
+                  songs: artistSongs,
+                );
+              },
             ),
           ),
         ],

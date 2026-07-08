@@ -4,8 +4,13 @@ import 'package:audio_service/audio_service.dart';
 
 import '../utils/audio_handler.dart';
 import '../../data/datasources/local_album_datasource.dart';
+import '../../data/datasources/local_artist_datasource.dart';
 import '../../data/datasources/local_song_datasource.dart';
 import '../../data/datasources/preferences_datasource.dart';
+import '../../data/repositories/album_repository.dart';
+import '../../data/repositories/artist_repository.dart';
+import '../../data/repositories/impl/album_repository_impl.dart';
+import '../../data/repositories/impl/artist_repository_impl.dart';
 import '../../data/repositories/impl/settings_repository_impl.dart';
 import '../../data/repositories/impl/song_repository_impl.dart';
 import '../../data/repositories/impl/playlist_repository_impl.dart';
@@ -40,6 +45,9 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<LocalAlbumDataSource>(
     () => LocalAlbumDataSource(),
   );
+  sl.registerLazySingleton<LocalArtistDataSource>(
+    () => LocalArtistDataSource(),
+  );
 
   // ── Repositories ──────────────────────────────────────────────────────────
   sl.registerLazySingleton<SongRepository>(
@@ -47,6 +55,12 @@ Future<void> configureDependencies() async {
       dataSource: sl<LocalSongDataSource>(),
       prefs: sl<PreferencesDataSource>(),
     ),
+  );
+  sl.registerLazySingleton<AlbumRepository>(
+    () => AlbumRepositoryImpl(dataSource: sl<LocalAlbumDataSource>()),
+  );
+  sl.registerLazySingleton<ArtistRepository>(
+    () => ArtistRepositoryImpl(dataSource: sl<LocalArtistDataSource>()),
   );
   sl.registerLazySingleton<SettingsRepository>(
     () => SettingsRepositoryImpl(sl<PreferencesDataSource>()),

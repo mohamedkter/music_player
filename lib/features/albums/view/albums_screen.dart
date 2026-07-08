@@ -18,8 +18,8 @@ class AlbumsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (ctx) => ctx.read<AlbumsBloc>()..add(AlbumsLoadRequested()),
+    return BlocProvider.value(
+      value: context.read<AlbumsBloc>()..add(AlbumsLoadRequested()),
       child: const _AlbumsView(),
     );
   }

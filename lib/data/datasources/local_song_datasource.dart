@@ -25,6 +25,9 @@ class LocalSongDataSource {
         uriType: oaq.UriType.EXTERNAL,
         ignoreCase: true,
       );
+      try {
+        await _query.queryVideos();
+      } catch (e) {}
       AppLogger.info('Raw songs: ${raw.length}', tag: _tag);
 
       final result = raw

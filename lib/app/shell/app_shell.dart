@@ -5,16 +5,14 @@ import '../../core/di/service_locator.dart';
 import '../../core/navigation/app_router.dart';
 import '../../core/utils/audio_handler.dart';
 import '../../data/datasources/preferences_datasource.dart';
-import '../../core/errors/failures.dart';
-import '../../core/utils/either.dart';
-import '../../data/models/album_model.dart';
-import '../../data/models/artist_model.dart';
 import '../../data/repositories/album_repository.dart';
 import '../../data/repositories/artist_repository.dart';
 import '../../data/repositories/playlist_repository.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../data/repositories/song_repository.dart';
 import '../../features/albums/bloc/albums_bloc.dart';
+import '../../features/artists/bloc/artists_bloc.dart';
+import '../../features/folders/bloc/folders_bloc.dart';
 import '../../features/home/bloc/home_bloc.dart';
 import '../../features/home/view/home_screen.dart';
 import '../../features/player/bloc/player_bloc.dart';
@@ -117,13 +115,19 @@ class _AppShellState extends State<AppShell> {
         create: (_) => SongsBloc(songRepo),
       ),
       BlocProvider<AlbumsBloc>(
-        create: (_) => AlbumsBloc(_AlbumRepoStub()),
+        create: (_) => AlbumsBloc(sl<AlbumRepository>()),
+      ),
+      BlocProvider<ArtistsBloc>(
+        create: (_) => ArtistsBloc(sl<ArtistRepository>()),
+      ),
+      BlocProvider<FoldersBloc>(
+        create: (_) => FoldersBloc(songRepo),
       ),
       BlocProvider<SearchBloc>(
         create: (_) => SearchBloc(
           songRepository: songRepo,
-          albumRepository: _AlbumRepoStub(),
-          artistRepository: _ArtistRepoStub(),
+          albumRepository: sl<AlbumRepository>(),
+          artistRepository: sl<ArtistRepository>(),
         ),
       ),
       BlocProvider<SettingsBloc>(
@@ -168,32 +172,3 @@ class _PlayerStateAdapter implements MiniPlayerState {
   Duration get duration => _state.duration;
 }
 
-// ── Stub repositories (until album/artist repos are fully wired to DI) ───────
-
-class _AlbumRepoStub implements AlbumRepository {
-  @override
-  Future<Either<Failure, List<AlbumModel>>> getAllAlbums() async =>
-      right([]);
-
-  @override
-  Future<Either<Failure, AlbumModel>> getAlbumById(int id) async =>
-      left(const NotFoundFailure());
-
-  @override
-  Future<Either<Failure, List<AlbumModel>>> searchAlbums(String q) async =>
-      right([]);
-}
-
-class _ArtistRepoStub implements ArtistRepository {
-  @override
-  Future<Either<Failure, List<ArtistModel>>> getAllArtists() async =>
-      right([]);
-
-  @override
-  Future<Either<Failure, ArtistModel>> getArtistById(int id) async =>
-      left(const NotFoundFailure());
-
-  @override
-  Future<Either<Failure, List<ArtistModel>>> searchArtists(String q) async =>
-      right([]);
-}

@@ -101,6 +101,22 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
                 (s) => _videoExtensions.contains(s.fileExtension.toLowerCase()))
             .toList();
 
+        // Folders
+        final folderMap = <String, List<SongModel>>{};
+        for (final song in allSongs) {
+          folderMap.putIfAbsent(song.folderPath, () => []).add(song);
+        }
+        final folders = folderMap.entries
+            .map(
+              (e) => HomeFolderEntry(
+                name: e.key.split('/').last,
+                path: e.key,
+                songs: e.value,
+              ),
+            )
+            .toList()
+          ..sort((a, b) => b.songCount.compareTo(a.songCount));
+
         emit(HomeLoaded(
           recentlyPlayed: recentlyPlayed,
           mostPlayed: mostPlayed,
@@ -110,6 +126,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           playlists: playlists,
           albums: albumMap.values.toList(),
           artists: artistMap.values.toList(),
+          folders: folders,
           videoAudio: videoAudio,
           activeFilter: HomeFilter.all,
         ));
@@ -162,4 +179,16 @@ class HomeArtistEntry {
   final String name;
   final int songId;
   int count;
+}
+
+class HomeFolderEntry {
+  HomeFolderEntry({
+    required this.name,
+    required this.path,
+    required this.songs,
+  });
+  final String name;
+  final String path;
+  final List<SongModel> songs;
+  int get songCount => songs.length;
 }

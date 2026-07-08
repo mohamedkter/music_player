@@ -240,6 +240,7 @@ class _HomeCategoriesMenu extends StatelessWidget {
       ));
     }
 
+
     if (state.recentlyAdded.isNotEmpty) {
       items.add(_CategoryItem(
         title: 'RECENTLY ADDED',
@@ -532,6 +533,7 @@ class _FilteredMediaSliver extends StatelessWidget {
       HomeFilter.albums => _AlbumsGrid(albums: state.albums, allSongs: state.allSongs),
       HomeFilter.artists => _ArtistsGrid(artists: state.artists, allSongs: state.allSongs),
       HomeFilter.playlists => _PlaylistsGrid(playlists: state.playlists),
+      HomeFilter.folders => _FoldersGrid(folders: state.folders),
       HomeFilter.videos => _VideosGrid(songs: state.videoAudio),
     };
   }
@@ -733,6 +735,111 @@ class _AlbumGridCard extends StatelessWidget {
       ),
     ), // Container
     ); // GestureDetector
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Folders grid
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FoldersGrid extends StatelessWidget {
+  const _FoldersGrid({required this.folders});
+  final List<HomeFolderEntry> folders;
+
+  @override
+  Widget build(BuildContext context) {
+    if (folders.isEmpty) {
+      return const SliverToBoxAdapter(child: _EmptyFilterState(label: 'NO FOLDERS'));
+    }
+    return SliverList.separated(
+      itemCount: folders.length,
+      separatorBuilder: (_, __) => const Divider(
+        height: 1,
+        thickness: 1,
+        color: AppColors.outlineVariant,
+      ),
+      itemBuilder: (ctx, i) {
+        final folder = folders[i];
+        return _FolderListTile(folder: folder);
+      },
+    );
+  }
+}
+
+class _FolderListTile extends StatelessWidget {
+  const _FolderListTile({required this.folder});
+  final HomeFolderEntry folder;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        AppRouter.pushCategorySongs(
+          context,
+          title: folder.name.toUpperCase(),
+          songs: folder.songs,
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: 10,
+        ),
+        child: Row(
+          children: [
+            // Folder icon box
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerHigh,
+                border: Border.all(color: AppColors.border, width: 2),
+                boxShadow: const [
+                  BoxShadow(
+                    color: AppColors.shadowNeutral,
+                    offset: Offset(2, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.folder,
+                color: AppColors.primary,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    folder.name.toUpperCase(),
+                    style: AppTextStyles.bodyMd.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    folder.path,
+                    style: AppTextStyles.labelSm.copyWith(fontSize: 10),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${folder.songCount} TRACKS',
+                    style: AppTextStyles.labelSm,
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.outline),
+          ],
+        ),
+      ),
+    );
   }
 }
 

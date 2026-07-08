@@ -7,6 +7,7 @@ enum HomeFilter {
   albums,
   artists,
   playlists,
+  folders,
   videos,
 }
 
@@ -17,6 +18,7 @@ extension HomeFilterLabel on HomeFilter {
         HomeFilter.albums => 'ALBUMS',
         HomeFilter.artists => 'ARTISTS',
         HomeFilter.playlists => 'PLAYLISTS',
+        HomeFilter.folders => 'FOLDERS',
         HomeFilter.videos => 'VIDEOS',
       };
 }
@@ -41,6 +43,7 @@ final class HomeLoaded extends HomeState {
     required this.playlists,
     required this.albums,
     required this.artists,
+    required this.folders,
     required this.videoAudio,
     required this.activeFilter,
   });
@@ -53,6 +56,7 @@ final class HomeLoaded extends HomeState {
   final List<PlaylistModel> playlists;
   final List<HomeAlbumEntry> albums;
   final List<HomeArtistEntry> artists;
+  final List<HomeFolderEntry> folders;
   final List<SongModel> videoAudio;
   final HomeFilter activeFilter;
 
@@ -65,6 +69,7 @@ final class HomeLoaded extends HomeState {
     List<PlaylistModel>? playlists,
     List<HomeAlbumEntry>? albums,
     List<HomeArtistEntry>? artists,
+    List<HomeFolderEntry>? folders,
     List<SongModel>? videoAudio,
     HomeFilter? activeFilter,
   }) {
@@ -77,6 +82,7 @@ final class HomeLoaded extends HomeState {
       playlists: playlists ?? this.playlists,
       albums: albums ?? this.albums,
       artists: artists ?? this.artists,
+      folders: folders ?? this.folders,
       videoAudio: videoAudio ?? this.videoAudio,
       activeFilter: activeFilter ?? this.activeFilter,
     );
@@ -92,6 +98,7 @@ final class HomeLoaded extends HomeState {
         playlists,
         albums,
         artists,
+        folders,
         videoAudio,
         activeFilter,
       ];

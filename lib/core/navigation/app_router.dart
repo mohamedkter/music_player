@@ -2,9 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../data/models/album_model.dart';
+import '../../data/models/artist_model.dart';
 import '../../features/albums/view/album_detail_screen.dart';
 import '../../features/albums/view/albums_screen.dart';
+import '../../features/artists/view/artist_detail_screen.dart';
+
+import '../../features/folders/view/folders_screen.dart';
 import '../../features/home/view/category_songs_screen.dart';
+import '../../features/albums/bloc/albums_bloc.dart';
+import '../../features/folders/bloc/folders_bloc.dart';
 import '../../features/player/bloc/player_bloc.dart';
 import '../../features/player/view/now_playing_screen.dart';
 import '../../features/player/view/queue_screen.dart';
@@ -41,7 +47,6 @@ abstract final class AppRouter {
       AppRoutes.categorySongs => _buildCategorySongsRoute(settings),
       AppRoutes.playlists => _buildPlaylistsRoute(settings),
       AppRoutes.search => _buildSearchRoute(settings),
-      AppRoutes.albums => _buildAlbumsRoute(settings),
       _ => _buildNotFoundRoute(settings),
     };  }
 
@@ -146,7 +151,38 @@ abstract final class AppRouter {
 
   /// Push [AppRoutes.albums].
   static Future<void> pushAlbums(BuildContext context) {
-    return Navigator.of(context).pushNamed(AppRoutes.albums);
+    final playerBloc = context.read<PlayerBloc>();
+    final albumsBloc = context.read<AlbumsBloc>();
+    return Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        settings: const RouteSettings(name: AppRoutes.albums),
+        builder: (_) => MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: playerBloc),
+            BlocProvider.value(value: albumsBloc),
+          ],
+          child: const AlbumsScreen(),
+        ),
+      ),
+    );
+  }
+
+  /// Push [AppRoutes.folders].
+  static Future<void> pushFolders(BuildContext context) {
+    final playerBloc = context.read<PlayerBloc>();
+    final foldersBloc = context.read<FoldersBloc>();
+    return Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        settings: const RouteSettings(name: AppRoutes.folders),
+        builder: (_) => MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: playerBloc),
+            BlocProvider.value(value: foldersBloc),
+          ],
+          child: const FoldersScreen(),
+        ),
+      ),
+    );
   }
 
   /// Push [AppRoutes.albumDetail].
@@ -162,6 +198,24 @@ abstract final class AppRouter {
         builder: (_) => BlocProvider.value(
           value: playerBloc,
           child: AlbumDetailScreen(album: album),
+        ),
+      ),
+    );
+  }
+
+  /// Push [AppRoutes.artistDetail].
+  static Future<void> pushArtistDetail(
+    BuildContext context, {
+    required ArtistModel artist,
+    PlayerBloc? playerBloc,
+  }) {
+    final bloc = playerBloc ?? context.read<PlayerBloc>();
+    return Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        settings: const RouteSettings(name: AppRoutes.artistDetail),
+        builder: (_) => BlocProvider.value(
+          value: bloc,
+          child: ArtistDetailScreen(artist: artist),
         ),
       ),
     );
@@ -199,12 +253,7 @@ abstract final class AppRouter {
     );
   }
 
-  static Route<void> _buildAlbumsRoute(RouteSettings settings) {
-    return MaterialPageRoute<void>(
-      settings: settings,
-      builder: (_) => const AlbumsScreen(),
-    );
-  }
+
 
   static Route<void> _buildNotFoundRoute(RouteSettings settings) {
     AppLogger.error('Unknown route: ${settings.name}', tag: 'Router');
