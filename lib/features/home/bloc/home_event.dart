@@ -16,3 +16,5 @@ final class HomeFilterChanged extends HomeEvent {
   @override
   List<Object?> get props => [filter];
 }
+
+final class HomeVideosLoadRequested extends HomeEvent {}

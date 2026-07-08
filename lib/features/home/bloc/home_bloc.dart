@@ -15,6 +15,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<HomeLoadRequested>(_onLoad);
     on<HomeRefreshRequested>(_onLoad);
     on<HomeFilterChanged>(_onFilterChanged);
+    on<HomeVideosLoadRequested>(_onLoadVideos);
   }
 
   final SongRepository _songRepository;
@@ -32,7 +33,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
     for (var attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        // Run all queries concurrently for faster load
+        // Run all queries concurrently for faster load (videos loaded lazily)
         final results = await Future.wait([
           _songRepository.getRecentlyPlayed(limit: 12),
           _songRepository.getMostPlayed(limit: 12),
@@ -95,11 +96,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           }
         }
 
-        // Video audio — songs whose fileExtension is a video format
-        final videoAudio = allSongs
-            .where(
-                (s) => _videoExtensions.contains(s.fileExtension.toLowerCase()))
-            .toList();
 
         // Folders
         final folderMap = <String, List<SongModel>>{};
@@ -127,7 +123,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           albums: albumMap.values.toList(),
           artists: artistMap.values.toList(),
           folders: folders,
-          videoAudio: videoAudio,
+          videoAudio: const [], // loaded lazily when VIDEOS tab is selected
           activeFilter: HomeFilter.all,
         ));
         return; // Success — exit the loop
@@ -151,12 +147,25 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     final current = state;
     if (current is HomeLoaded) {
       emit(current.copyWith(activeFilter: event.filter));
+      // Lazy-load videos only when VIDEOS tab is first selected
+      if (event.filter == HomeFilter.videos && current.videoAudio.isEmpty) {
+        add(HomeVideosLoadRequested());
+      }
     }
   }
 
-  static const _videoExtensions = {
-    'mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', '3gp', 'm4v',
-  };
+  Future<void> _onLoadVideos(
+    HomeVideosLoadRequested event,
+    Emitter<HomeState> emit,
+  ) async {
+    final current = state;
+    if (current is! HomeLoaded) return;
+    final result = await _songRepository.getAllVideos();
+    result.fold(
+      (_) {}, // silently ignore errors for videos
+      (videos) => emit(current.copyWith(videoAudio: videos)),
+    );
+  }
 }
 
 // ── Public data helpers exposed to the view ───────────────────────────────────

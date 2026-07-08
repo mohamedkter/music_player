@@ -14,6 +14,11 @@ abstract final class AppConstants {
     'mp3', 'flac', 'wav', 'aac', 'ogg', 'm4a', 'opus',
   ];
 
+  /// Supported video file extensions.
+  static const List<String> supportedVideoFormats = [
+    'mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', '3gp', 'm4v',
+  ];
+
   // ── Playback Speeds ───────────────────────────────────────────────────────
   static const List<double> playbackSpeeds = [
     0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0,

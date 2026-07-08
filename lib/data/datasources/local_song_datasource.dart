@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:on_audio_query/on_audio_query.dart' as oaq;
 import '../models/song_model.dart';
 import '../../core/constants/app_constants.dart';
@@ -25,9 +26,6 @@ class LocalSongDataSource {
         uriType: oaq.UriType.EXTERNAL,
         ignoreCase: true,
       );
-      try {
-        await _query.queryVideos();
-      } catch (e) {}
       AppLogger.info('Raw songs: ${raw.length}', tag: _tag);
 
       final result = raw
@@ -98,6 +96,96 @@ class LocalSongDataSource {
       AppLogger.error('fetchSongsByArtist', tag: _tag, error: e, stackTrace: st);
       throw MediaScanException('$e');
     }
+  }
+
+  /// Scans known video directories on Android for video files.
+  /// Only scans DCIM, Movies, Video, Videos, Download — not the entire storage.
+  Future<List<SongModel>> fetchAllVideos() async {
+    try {
+      await _ensurePermission();
+
+      // Known external storage roots on Android
+      const roots = ['/storage/emulated/0', '/sdcard'];
+
+      // Directories that commonly contain videos on Android
+      const videoDirs = [
+        'DCIM',
+        'Movies',
+        'Movie',
+        'Video',
+        'Videos',
+        'Download',
+        'Downloads',
+        'WhatsApp/Media/WhatsApp Video',
+        'Telegram/Telegram Video',
+      ];
+
+      final videoFiles = <File>[];
+
+      for (final root in roots) {
+        if (!Directory(root).existsSync()) continue;
+
+        for (final sub in videoDirs) {
+          final dir = Directory('$root/$sub');
+          if (!dir.existsSync()) continue;
+          await _scanDirForVideos(dir, videoFiles, maxDepth: 3);
+        }
+        break; // Only scan the first valid root
+      }
+
+      AppLogger.info('Videos found: ${videoFiles.length}', tag: _tag);
+
+      final result = <SongModel>[];
+      var idCounter = -1;
+      for (final file in videoFiles) {
+        try {
+          final stat = await file.stat();
+          final name = file.path.split('/').last;
+          final nameWithoutExt = name.contains('.')
+              ? name.substring(0, name.lastIndexOf('.'))
+              : name;
+          result.add(SongModel(
+            id: idCounter--,
+            title: nameWithoutExt,
+            artist: 'Unknown Artist',
+            album: 'Videos',
+            data: file.path,
+            duration: 0,
+            size: stat.size,
+            dateAdded: stat.modified.millisecondsSinceEpoch ~/ 1000,
+          ));
+        } catch (_) {}
+      }
+      return result;
+    } catch (e, st) {
+      AppLogger.error('fetchAllVideos', tag: _tag, error: e, stackTrace: st);
+      return [];
+    }
+  }
+
+  Future<void> _scanDirForVideos(
+    Directory dir,
+    List<File> result, {
+    int depth = 0,
+    int maxDepth = 3,
+  }) async {
+    if (depth > maxDepth) return;
+    try {
+      await for (final entity in dir.list(followLinks: false)) {
+        if (entity is File) {
+          final ext = entity.path.split('.').last.toLowerCase();
+          if (AppConstants.supportedVideoFormats.contains(ext)) {
+            result.add(entity);
+          }
+        } else if (entity is Directory) {
+          final name = entity.path.split('/').last;
+          if (!name.startsWith('.')) {
+            await _scanDirForVideos(entity, result,
+                depth: depth + 1, maxDepth: maxDepth);
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   // ── Private ───────────────────────────────────────────────────────────────

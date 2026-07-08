@@ -42,6 +42,9 @@ abstract interface class SongRepository {
   /// Scans the device MediaStore and syncs with local DB.
   Future<Either<Failure, int>> scanLibrary();
 
+  /// Returns all video files found on the device.
+  Future<Either<Failure, List<SongModel>>> getAllVideos();
+
   /// Watches favorite changes as a reactive stream.
   Stream<List<SongModel>> watchFavorites();
 }

@@ -219,6 +219,17 @@ class SongRepositoryImpl implements SongRepository {
   @override
   Stream<List<SongModel>> watchFavorites() => _favoritesController.stream;
 
+  @override
+  Future<Either<Failure, List<SongModel>>> getAllVideos() async {
+    try {
+      final videos = await _dataSource.fetchAllVideos();
+      return right(videos);
+    } catch (e, st) {
+      AppLogger.error('getAllVideos', tag: _tag, error: e, stackTrace: st);
+      return left(UnexpectedFailure(e.toString()));
+    }
+  }
+
   void dispose() => _favoritesController.close();
 
   // ── Private ───────────────────────────────────────────────────────────────
