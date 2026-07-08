@@ -32,7 +32,7 @@ class _SongsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -53,12 +53,11 @@ class _Header extends StatelessWidget {
         AppSpacing.md,
         AppSpacing.md,
         AppSpacing.md,
-        AppSpacing.sm,
+        AppSpacing.md,
       ),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        border: const Border(
-          bottom: BorderSide(color: AppColors.outlineVariant, width: 2),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: AppColors.border, width: 3),
         ),
       ),
       child: Column(
@@ -67,28 +66,53 @@ class _Header extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Songs', style: AppTextStyles.headlineMd),
+              Text(
+                'SONGS',
+                style: AppTextStyles.headlineMd.copyWith(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
+                ),
+              ),
               BlocBuilder<SongsBloc, SongsState>(
                 builder: (ctx, state) {
                   return GestureDetector(
                     onTap: () => _showSortSheet(ctx),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.sort,
-                          size: 18,
-                          color: AppColors.onSurfaceVariant,
-                        ),
-                        AppSpacing.hGap(AppSpacing.xs),
-                        Text('Sort', style: AppTextStyles.labelMd),
-                      ],
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.gold,
+                        border: Border.all(color: AppColors.border, width: 2),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: AppColors.shadowNeutral,
+                            offset: Offset(2, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.sort,
+                            size: 16,
+                            color: AppColors.border,
+                          ),
+                          AppSpacing.hGap(AppSpacing.xs),
+                          Text(
+                            'SORT',
+                            style: AppTextStyles.labelSm.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.border,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },
               ),
             ],
           ),
-          AppSpacing.vGap(AppSpacing.sm),
+          AppSpacing.vGap(AppSpacing.md),
           AppSearchBar(
             hintText: 'Search songs...',
             onChanged: (q) =>
@@ -105,7 +129,7 @@ class _Header extends StatelessWidget {
     final bloc = context.read<SongsBloc>();
     final current = bloc.state is SongsLoaded
         ? (bloc.state as SongsLoaded).sort
-        : SongSortOption.titleAsc;
+        : SongSortOption.dateNewest;
 
     showModalBottomSheet<void>(
       context: context,
@@ -219,10 +243,19 @@ class _SongsList extends StatelessWidget {
   }
 
   void _showSongOptions(BuildContext context, dynamic song) {
+    final songsBloc = context.read<SongsBloc>();
+    final playerBloc = context.read<PlayerBloc>();
+
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => _SongOptionsSheet(song: song),
+      builder: (_) => MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: songsBloc),
+          BlocProvider.value(value: playerBloc),
+        ],
+        child: _SongOptionsSheet(song: song),
+      ),
     );
   }
 }

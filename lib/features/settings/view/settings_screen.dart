@@ -45,9 +45,9 @@ class _SettingsView extends StatelessWidget {
                       children: [
                         Text(
                           'SETTINGS',
-                          style: AppTextStyles.displayLgMobile.copyWith(
-                            fontSize: 32,
-                            letterSpacing: 2.0,
+                          style: AppTextStyles.headlineMd.copyWith(
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.0,
                           ),
                         ),
                         Container(

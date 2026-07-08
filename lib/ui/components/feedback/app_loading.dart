@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -15,16 +16,16 @@ class AppLoadingWidget extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(
-            width: 32,
-            height: 32,
-            child: CircularProgressIndicator(
-              strokeWidth: 3,
-              color: AppColors.primary,
+          SizedBox(
+            width: 200,
+            height: 200,
+            child: Lottie.asset(
+              'assets/animations/LOADING.json',
+              fit: BoxFit.contain,
             ),
           ),
           if (message != null) ...[
-            AppSpacing.vGap(AppSpacing.md),
+            AppSpacing.vGap(AppSpacing.sm),
             Text(
               message!,
               style: AppTextStyles.labelMd,

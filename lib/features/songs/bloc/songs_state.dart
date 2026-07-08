@@ -26,7 +26,7 @@ final class SongsLoaded extends SongsState {
     required this.songs,
     required this.allSongs,
     this.searchQuery = '',
-    this.sort = SongSortOption.titleAsc,
+    this.sort = SongSortOption.dateNewest,
   });
 
   final List<SongModel> songs;       // Filtered + sorted — shown in UI

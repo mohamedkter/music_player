@@ -125,6 +125,8 @@ class _Header extends StatelessWidget {
   }
 
   void _showMoreOptions(BuildContext context) {
+    final playerBloc = context.read<PlayerBloc>();
+
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -149,9 +151,7 @@ class _Header extends StatelessWidget {
                     backgroundColor: Colors.transparent,
                     builder: (_) => SpeedBottomSheet(
                       currentSpeed: state.speed,
-                      onSelected: (s) => context
-                          .read<PlayerBloc>()
-                          .add(PlayerSpeedChanged(s)),
+                      onSelected: (s) => playerBloc.add(PlayerSpeedChanged(s)),
                     ),
                   );
                 },
@@ -164,7 +164,10 @@ class _Header extends StatelessWidget {
                   showModalBottomSheet<void>(
                     context: context,
                     backgroundColor: Colors.transparent,
-                    builder: (_) => const SleepTimerBottomSheet(),
+                    builder: (_) => BlocProvider.value(
+                      value: playerBloc,
+                      child: const SleepTimerBottomSheet(),
+                    ),
                   );
                 },
               ),
@@ -176,7 +179,10 @@ class _Header extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute<void>(
-                      builder: (_) => const QueueScreen(),
+                      builder: (_) => BlocProvider.value(
+                        value: playerBloc,
+                        child: const QueueScreen(),
+                      ),
                     ),
                   );
                 },

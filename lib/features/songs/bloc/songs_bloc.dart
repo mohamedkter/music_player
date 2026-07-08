@@ -37,8 +37,12 @@ class SongsBloc extends Bloc<SongsEvent, SongsState> {
         emit(SongsError(failure.message));
       },
       (songs) {
-        final sorted = _sort(songs, SongSortOption.titleAsc);
-        emit(SongsLoaded(songs: sorted, allSongs: songs));
+        final sorted = _sort(songs, SongSortOption.dateNewest);
+        emit(SongsLoaded(
+          songs: sorted,
+          allSongs: songs,
+          sort: SongSortOption.dateNewest,
+        ));
       },
     );
   }
