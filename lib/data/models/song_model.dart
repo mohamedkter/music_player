@@ -66,6 +66,48 @@ class SongModel extends Equatable {
 
   Duration get durationObj => Duration(milliseconds: duration);
 
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'artist': artist,
+      'album': album,
+      'data': data,
+      'duration': duration,
+      'size': size,
+      'dateAdded': dateAdded,
+      'genre': genre,
+      'track': track,
+      'year': year,
+      'coverPath': coverPath,
+      'bitrate': bitrate,
+      'playCount': playCount,
+      'lastPlayed': lastPlayed,
+      'isFavorite': isFavorite,
+    };
+  }
+
+  factory SongModel.fromMap(Map<String, dynamic> map) {
+    return SongModel(
+      id: map['id'] as int,
+      title: map['title'] as String,
+      artist: map['artist'] as String,
+      album: map['album'] as String,
+      data: map['data'] as String,
+      duration: map['duration'] as int,
+      size: map['size'] as int,
+      dateAdded: map['dateAdded'] as int,
+      genre: map['genre'] as String?,
+      track: map['track'] as int?,
+      year: map['year'] as int?,
+      coverPath: map['coverPath'] as String?,
+      bitrate: map['bitrate'] as int?,
+      playCount: map['playCount'] as int? ?? 0,
+      lastPlayed: map['lastPlayed'] as int? ?? 0,
+      isFavorite: map['isFavorite'] as bool? ?? false,
+    );
+  }
+
   // ── copyWith ──────────────────────────────────────────────────────────────
 
   SongModel copyWith({

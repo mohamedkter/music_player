@@ -41,6 +41,12 @@ class _HomeView extends StatelessWidget {
       backgroundColor: AppColors.surface,
       body: SafeArea(
         child: BlocBuilder<HomeBloc, HomeState>(
+          // Only rebuild the entire scaffold when switching between
+          // loading/error/loaded states — NOT on every filter change.
+          buildWhen: (prev, curr) =>
+              prev.runtimeType != curr.runtimeType ||
+              (prev is HomeLoaded && curr is HomeLoaded &&
+               prev.allSongs.length != curr.allSongs.length),
           builder: (context, state) => switch (state) {
             HomeInitial() || HomeLoading() => const AppLoadingWidget(),
             HomeError(:final message) => AppErrorWidget(
@@ -73,10 +79,10 @@ class _HomeContent extends StatelessWidget {
       child: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          // ── Tappable Search Bar ─────────────────────────────────────────
+          // ── Tappable Search Bar — never rebuilds on filter change ───────
           SliverToBoxAdapter(child: _HomeSearchBar()),
 
-          // ── Category List Menu ──────────────────────────────────────────
+          // ── Category Menu — rebuilds only when song data changes ────────
           SliverToBoxAdapter(child: _HomeCategoriesMenu(state: state)),
 
           // ── Divider ────────────────────────────────────────────────────
@@ -87,14 +93,22 @@ class _HomeContent extends StatelessWidget {
             ),
           ),
 
-          // ── Filter tabs — horizontal scroll ───────────────────────────
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _FilterTabsDelegate(activeFilter: state.activeFilter),
+          // ── Filter tabs — rebuilds only when activeFilter changes ───────
+          BlocSelector<HomeBloc, HomeState, HomeFilter>(
+            selector: (s) => s is HomeLoaded ? s.activeFilter : HomeFilter.all,
+            builder: (ctx, activeFilter) => SliverPersistentHeader(
+              pinned: true,
+              delegate: _FilterTabsDelegate(activeFilter: activeFilter),
+            ),
           ),
 
-          // ── Media grid based on active filter ─────────────────────────
-          _FilteredMediaSliver(state: state),
+          // ── Media grid — rebuilds only when filter or data changes ──────
+          BlocSelector<HomeBloc, HomeState, HomeLoaded?>(
+            selector: (s) => s is HomeLoaded ? s : null,
+            builder: (ctx, loaded) => loaded != null
+                ? _FilteredMediaSliver(state: loaded)
+                : const SliverToBoxAdapter(child: SizedBox.shrink()),
+          ),
 
           const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
@@ -578,37 +592,68 @@ class _AllMediaGrid extends StatelessWidget {
 // Songs grid
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _SongsGrid extends StatelessWidget {
+class _SongsGrid extends StatefulWidget {
   const _SongsGrid({required this.songs});
   final List<SongModel> songs;
 
   @override
+  State<_SongsGrid> createState() => _SongsGridState();
+}
+
+class _SongsGridState extends State<_SongsGrid> {
+  static const _pageSize = 50;
+  int _loadedCount = _pageSize;
+
+  @override
   Widget build(BuildContext context) {
-    if (songs.isEmpty) {
+    if (widget.songs.isEmpty) {
       return const SliverToBoxAdapter(child: _EmptyFilterState(label: 'NO SONGS'));
     }
+
+    final visible = widget.songs.take(_loadedCount).toList();
+    final hasMore = _loadedCount < widget.songs.length;
+
     return SliverList.separated(
-      itemCount: songs.length,
+      itemCount: visible.length + (hasMore ? 1 : 0),
       separatorBuilder: (_, __) => const Divider(
         height: 1,
         thickness: 1,
         color: AppColors.outlineVariant,
       ),
       itemBuilder: (ctx, i) {
-        final song = songs[i];
-        return _MediaListTile(
-          songId: song.id,
-          title: song.title,
-          subtitle: '${song.artist} · ${song.album}',
-          type: song.fileExtension.toUpperCase(),
-          onTap: () => ctx.read<PlayerBloc>().add(
-                PlayerSongRequested(song: song, queue: songs),
+        // Load more trigger
+        if (i == visible.length) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _loadedCount += _pageSize);
+          });
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
               ),
+            ),
+          );
+        }
+        final song = visible[i];
+        return RepaintBoundary(
+          child: _MediaListTile(
+            songId: song.id,
+            title: song.title,
+            subtitle: '${song.artist} · ${song.album}',
+            type: song.fileExtension.toUpperCase(),
+            onTap: () => ctx.read<PlayerBloc>().add(
+                  PlayerSongRequested(song: song, queue: widget.songs),
+                ),
+          ),
         );
       },
     );
   }
 }
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Albums grid (2-col)
@@ -760,7 +805,9 @@ class _FoldersGrid extends StatelessWidget {
       ),
       itemBuilder: (ctx, i) {
         final folder = folders[i];
-        return _FolderListTile(folder: folder);
+        return RepaintBoundary(
+          child: _FolderListTile(folder: folder),
+        );
       },
     );
   }
@@ -866,7 +913,9 @@ class _ArtistsGrid extends StatelessWidget {
       ),
       itemBuilder: (ctx, i) {
         final artist = artists[i];
-        return _ArtistListTile(artist: artist, allSongs: allSongs);
+        return RepaintBoundary(
+          child: _ArtistListTile(artist: artist, allSongs: allSongs),
+        );
       },
     );
   }
@@ -1097,16 +1146,18 @@ class _VideosGrid extends StatelessWidget {
       ),
       itemBuilder: (ctx, i) {
         final song = songs[i];
-        return _MediaListTile(
-          songId: song.id,
-          title: song.title,
-          subtitle: song.artist,
-          type: song.fileExtension.toUpperCase(),
-          typeColor: AppColors.primary,
-          icon: Icons.videocam_outlined,
-          onTap: () => ctx.read<PlayerBloc>().add(
-                PlayerSongRequested(song: song, queue: songs),
-              ),
+        return RepaintBoundary(
+          child: _MediaListTile(
+            songId: song.id,
+            title: song.title,
+            subtitle: song.artist,
+            type: song.fileExtension.toUpperCase(),
+            typeColor: AppColors.primary,
+            icon: Icons.videocam_outlined,
+            onTap: () => ctx.read<PlayerBloc>().add(
+                  PlayerSongRequested(song: song, queue: songs),
+                ),
+          ),
         );
       },
     );

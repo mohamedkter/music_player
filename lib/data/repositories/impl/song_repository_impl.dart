@@ -1,4 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+
 import '../../../core/errors/exceptions.dart';
 import '../../../core/errors/failures.dart';
 import '../../../core/utils/either.dart';
@@ -30,14 +34,31 @@ class SongRepositoryImpl implements SongRepository {
       StreamController<List<SongModel>>.broadcast();
 
   @override
-  Future<Either<Failure, List<SongModel>>> getAllSongs() async {
+  Future<Either<Failure, List<SongModel>>> getAllSongs({bool forceRefresh = false}) async {
     try {
+      if (forceRefresh) {
+        final songs = await _fetch();
+        if (songs.isEmpty) return right(_cache ?? []);
+        final currentList = _cache ?? await _loadCacheFromDisk() ?? [];
+        final songsWithMeta = _mergeMetadata(songs, currentList);
+        _cache = songsWithMeta;
+        await _saveCacheToDisk(songsWithMeta);
+        return right(songsWithMeta);
+      }
+
       if (_cache == null || _cache!.isEmpty) {
+        final diskSongs = await _loadCacheFromDisk();
+        if (diskSongs != null && diskSongs.isNotEmpty) {
+          _cache = diskSongs;
+          return right(_cache!);
+        }
+
         final songs = await _fetch();
         // Only cache if we got actual results — empty likely means
         // MediaStore hasn't synced yet (e.g. right after permission grant).
         if (songs.isNotEmpty) {
           _cache = songs;
+          await _saveCacheToDisk(songs);
         }
         return right(songs);
       }
@@ -165,6 +186,7 @@ class SongRepositoryImpl implements SongRepository {
             isFavorite: !songs[idx].isFavorite,
           );
           _cache![idx] = updated;
+          _saveCacheToDisk(_cache!);
           _pushFavorites(_cache!);
           return right(updated);
         },
@@ -186,6 +208,7 @@ class SongRepositoryImpl implements SongRepository {
             playCount: songs[idx].playCount + 1,
             lastPlayed: DateTime.now().millisecondsSinceEpoch,
           );
+          _saveCacheToDisk(_cache!);
         }
       });
       return right(null);
@@ -198,14 +221,17 @@ class SongRepositoryImpl implements SongRepository {
   @override
   Future<Either<Failure, int>> scanLibrary() async {
     try {
+      final currentList = _cache ?? await _loadCacheFromDisk() ?? [];
       _cache = null; // Invalidate
       final songs = await _fetch();
-      _cache = songs;
+      final songsWithMeta = _mergeMetadata(songs, currentList);
+      _cache = songsWithMeta;
+      await _saveCacheToDisk(songsWithMeta);
       AppLogger.info(
-        'Library scan complete: ${songs.length} songs',
+        'Library scan complete: ${songsWithMeta.length} songs',
         tag: _tag,
       );
-      return right(songs.length);
+      return right(songsWithMeta.length);
     } on PermissionException catch (e) {
       return left(PermissionFailure(e.message));
     } on MediaScanException catch (e) {
@@ -248,5 +274,53 @@ class SongRepositoryImpl implements SongRepository {
       _favoritesController
           .add(songs.where((s) => s.isFavorite).toList());
     }
+  }
+
+  Future<File> _getCacheFile() async {
+    final directory = await getApplicationDocumentsDirectory();
+    return File('${directory.path}/songs_cache.json');
+  }
+
+  Future<void> _saveCacheToDisk(List<SongModel> songs) async {
+    try {
+      final file = await _getCacheFile();
+      final maps = songs.map((s) => s.toMap()).toList();
+      final jsonStr = json.encode(maps);
+      await file.writeAsString(jsonStr);
+      AppLogger.info('Saved ${songs.length} songs to disk cache', tag: _tag);
+    } catch (e, st) {
+      AppLogger.error('Failed to save disk cache', tag: _tag, error: e, stackTrace: st);
+    }
+  }
+
+  Future<List<SongModel>?> _loadCacheFromDisk() async {
+    try {
+      final file = await _getCacheFile();
+      if (!await file.exists()) return null;
+      final jsonStr = await file.readAsString();
+      final decoded = json.decode(jsonStr) as List<dynamic>;
+      final songs = decoded.map((m) => SongModel.fromMap(m as Map<String, dynamic>)).toList();
+      AppLogger.info('Loaded ${songs.length} songs from disk cache', tag: _tag);
+      return songs;
+    } catch (e, st) {
+      AppLogger.error('Failed to load disk cache', tag: _tag, error: e, stackTrace: st);
+      return null;
+    }
+  }
+
+  List<SongModel> _mergeMetadata(List<SongModel> fresh, List<SongModel> current) {
+    if (current.isEmpty) return fresh;
+    final currentMap = {for (final s in current) s.data: s};
+    return fresh.map((f) {
+      final cur = currentMap[f.data];
+      if (cur != null) {
+        return f.copyWith(
+          playCount: cur.playCount,
+          lastPlayed: cur.lastPlayed,
+          isFavorite: cur.isFavorite,
+        );
+      }
+      return f;
+    }).toList();
   }
 }

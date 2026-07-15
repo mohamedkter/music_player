@@ -6,8 +6,7 @@ import '../../core/utils/either.dart';
 /// BLoCs depend on this interface — never on concrete implementations.
 /// Follows Dependency Inversion Principle.
 abstract interface class SongRepository {
-  /// Returns all songs from local storage.
-  Future<Either<Failure, List<SongModel>>> getAllSongs();
+  Future<Either<Failure, List<SongModel>>> getAllSongs({bool forceRefresh = false});
 
   /// Returns songs sorted/filtered by [query].
   Future<Either<Failure, List<SongModel>>> searchSongs(String query);
