@@ -17,6 +17,8 @@ import '../../data/repositories/impl/playlist_repository_impl.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../data/repositories/song_repository.dart';
 import '../../data/repositories/playlist_repository.dart';
+import '../../features/transfer/service/nearby_transfer_service.dart';
+import '../../features/transfer/service/wifi_transfer_service.dart';
 import '../bloc/theme/theme_bloc.dart';
 import '../utils/logger.dart';
 
@@ -73,6 +75,10 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<ThemeBloc>(
     () => ThemeBloc(sl<SharedPreferences>()),
   );
+
+  // ── Transfer Services ─────────────────────────────────────────────────────
+  sl.registerFactory<NearbyTransferService>(() => NearbyTransferService());
+  sl.registerFactory<WifiTransferService>(() => WifiTransferService());
 
   AppLogger.info('All dependencies registered', tag: 'DI');
 }

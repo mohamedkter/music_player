@@ -17,6 +17,7 @@ abstract final class AppRoutes {
   static const String artistDetail = '/artists/detail';
   static const String artists = '/artists';
   static const String folders = '/folders';
+  static const String transfer = '/transfer';
 
   AppRoutes._();
 }

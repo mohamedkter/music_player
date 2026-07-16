@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/navigation/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -193,6 +194,44 @@ class _SettingsView extends StatelessWidget {
                         onTap: () {
                           // Placeholder
                         },
+                      ),
+                    ],
+                  ),
+                ),
+
+                // ── Section: INFO ────────────────────────────────────────────
+                SliverToBoxAdapter(
+                  child: _SectionContainer(
+                    title: 'SHARE & TRANSFER',
+                    children: [
+                      _SettingTile(
+                        label: 'SHARE MUSIC',
+                        subtitle: 'SEND OR RECEIVE SONGS WITH NEARBY DEVICES',
+                        leading: const Icon(
+                          Icons.share,
+                          color: AppColors.primary,
+                        ),
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            border: Border.all(
+                              color: AppColors.border,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Text(
+                            'OPEN',
+                            style: AppTextStyles.labelSm.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        onTap: () => AppRouter.pushTransfer(context),
                       ),
                     ],
                   ),

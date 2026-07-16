@@ -10,36 +10,47 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # ── Audio Engine ──────────────────────────────────────
+  # Audio Engine
   just_audio: ^0.9.40
   audio_service: ^0.18.15
   on_audio_query: ^2.9.0
 
-  # ── Permissions ───────────────────────────────────────
+  # Permissions
   permission_handler: ^11.3.1
 
-  # ── State Management (BLoC) ───────────────────────────
+  # State Management (BLoC)
   flutter_bloc: ^8.1.6
   bloc: ^8.1.4
   equatable: ^2.0.5
 
-  # ── Database ──────────────────────────────────────────
+  # Database
   isar: ^3.1.0+1
   isar_flutter_libs: ^3.1.0+1
 
-  # ── UI & Design ───────────────────────────────────────
+  # UI & Design
   palette_generator: ^0.3.3+3
   cached_network_image: ^3.3.1
   animations: ^2.0.11
   google_fonts: ^6.2.1
   lottie: ^3.1.2
 
-  # ── Utils ─────────────────────────────────────────────
+  # Utils
   shared_preferences: ^2.3.2
   path_provider: ^2.1.4
   rxdart: ^0.27.7
   get_it: ^8.0.3
   injectable: ^2.4.4
+
+  # Transfer / Sharing
+  device_info_plus: ^10.1.0
+  nearby_connections: ^4.1.0
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^7.0.0
+  network_info_plus: ^6.1.3
+  shelf: ^1.4.2
+  shelf_router: ^1.1.4
+  http: ^1.2.2
+  open_filex: ^4.5.1
 
 dev_dependencies:
   flutter_test:
@@ -82,4 +93,3 @@ flutter_native_splash:
   android_12:
     image: assets/images/splash_logo.png
     color: "#FCD400"
-

@@ -16,6 +16,7 @@ import '../../features/player/view/now_playing_screen.dart';
 import '../../features/player/view/queue_screen.dart';
 import '../../features/search/bloc/search_bloc.dart';
 import '../../features/search/view/search_screen.dart';
+import '../../features/transfer/view/transfer_screen.dart';
 import '../utils/logger.dart';
 import 'app_routes.dart';
 import 'route_args.dart';
@@ -47,6 +48,7 @@ abstract final class AppRouter {
       AppRoutes.categorySongs => _buildCategorySongsRoute(settings),
       AppRoutes.playlists => _buildPlaylistsRoute(settings),
       AppRoutes.search => _buildSearchRoute(settings),
+      AppRoutes.transfer => _buildTransferRoute(settings),
       _ => _buildNotFoundRoute(settings),
     };  }
 
@@ -221,6 +223,25 @@ abstract final class AppRouter {
     );
   }
 
+  /// Push [AppRoutes.transfer] — the share/receive music screen.
+  static Future<void> pushTransfer(BuildContext context) {
+    return Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        settings: const RouteSettings(name: AppRoutes.transfer),
+        pageBuilder: (_, __, ___) => const TransferScreen(),
+        transitionsBuilder: (_, animation, __, child) => SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 1),
+            end: Offset.zero,
+          ).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+          child: child,
+        ),
+        transitionDuration: const Duration(milliseconds: 350),
+      ),
+    );
+  }
+
   // ── Route builders ─────────────────────────────────────────────────────────
 
   static Route<void> _buildCategorySongsRoute(RouteSettings settings) {
@@ -250,6 +271,13 @@ abstract final class AppRouter {
     return MaterialPageRoute<void>(
       settings: settings,
       builder: (_) => const SearchScreen(),
+    );
+  }
+
+  static Route<void> _buildTransferRoute(RouteSettings settings) {
+    return MaterialPageRoute<void>(
+      settings: settings,
+      builder: (_) => const TransferScreen(),
     );
   }
 
